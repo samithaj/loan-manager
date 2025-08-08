@@ -152,3 +152,127 @@ When asked to add/modify an API or UI flow:
 - State-changing UI calls must pass `Idempotency-Key: <uuid>`.
 
 See `BUSINESS_REQUIREMENTS.md` for full OpenAPI 3.1 contract, event schemas, and endpoint details.
+
+## Step-by-step plan aligned with `TASKS.MD` (do these in order)
+
+This is the execution checklist for AI agents. Each sprint has concrete tasks for BE/FE, best practices to enforce, and the primary endpoints or flows to implement. Always keep `openapi/schema.yml` as the contract source before coding.
+
+### Sprint 0 — Foundations (living contract, scaffolding)
+- Backend
+  - [ ] Create `openapi/schema.yml` with `/health`, `/me` minimal definitions.
+  - [ ] Scaffold FastAPI app: `backend/app/main.py`, routers pkg, settings, logging, error handler.
+- Frontend
+  - [ ] Next.js app shell, route guards, `.env` management, role-aware layout stubs.
+  - [ ] Minimal auth form storing credentials in memory (temporary); prefer proxying `Authorization` later.
+- DevEx
+  - [ ] Generate TS types and client using `openapi-typescript` + `openapi-fetch`.
+  - [ ] CI: lint/format/test; optional pre-commit; Dockerfiles (dev/prod).
+  - [ ] Observability seed: correlation ID middleware; JSON logs.
+
+### Sprint 1 — Org & reference data (offices, staff, holidays, currency, payment types)
+- Backend
+  - [ ] Implement GET `/offices`, `/staff`, `/holidays`, `/currencies`, `/payment-types`.
+  - [ ] Add pagination + `sort` consistently where applicable.
+- Frontend
+  - [ ] Simple tables with paging/sorting; role-gated access.
+
+### Sprint 2 — Clients CRUD
+- Backend
+  - [ ] `/clients` list/create; `/clients/{id}` get/update; search by `q`.
+  - [ ] Server-side validation (e.g., NIC/mobile uniqueness if configured).
+- Frontend
+  - [ ] Client list and create/edit forms with inline validation.
+- Testing
+  - [ ] FastAPI `TestClient` + pytest for happy/edge paths.
+
+### Sprint 3 — Loan products CRUD
+- Backend
+  - [ ] `/loan-products` list/create; validate interest bounds, `repaymentFrequency` enum.
+- Frontend
+  - [ ] Product list & create form.
+
+### Sprint 4 — Loans lifecycle (application → approval → disbursement)
+- Backend
+  - [ ] `/loans` create; `/loans/{id}` get/put (PENDING only).
+  - [ ] Commands via `/loans/{id}?command=approve|disburse|close` with `Idempotency-Key`.
+  - [ ] Audit log entries.
+- Frontend
+  - [ ] Loan workspace: header, timeline, action drawer for approve/disburse.
+
+### Sprint 5 — Transactions & receipts
+- Backend
+  - [ ] `/loans/{id}?command=repayment|prepay|foreclosure|writeoff|waiveInterest|recovery` → returns `{transaction, loan}` with `receiptNumber`.
+  - [ ] `/loans/{id}/transactions/template?command=…` for UI templates.
+- Frontend
+  - [ ] Payment form + “Print receipt” using `react-to-print` component.
+
+### Sprint 6 — Charges
+- Backend
+  - [ ] `/loans/{id}/charges` CRUD; `/loans/{id}/charges/{chargeId}/pay` posts a transaction.
+- Frontend
+  - [ ] Charge management UI; “Pay charge” flow & receipt.
+
+### Sprint 7 — Collateral & vehicle inventory
+- Backend
+  - [ ] `/loans/{id}/collaterals` CRUD.
+  - [ ] `/vehicle-inventory` CRUD; `:allocate` / `:release` endpoints.
+  - [ ] Disbursement: if `vehicleInventoryId` present → atomically allocate/sell; otherwise proceed; 409 on allocation races.
+- Frontend
+  - [ ] Inventory table with “Allocate to loan”; loan collateral tab.
+
+### Sprint 8 — Documents (upload/list/download)
+- Backend
+  - [ ] Multipart uploads; content-type allowlist; 25MB default; optional AV hook.
+- Frontend
+  - [ ] Uploader with previews of common types.
+
+### Sprint 9 — Bulk upload (CSV) + Jobs runner
+- Backend
+  - [ ] `/bulk/clients` & `/bulk/loans` accept CSV → `202 {jobId}`.
+  - [ ] `/jobs/{jobId}` status; batch-only `:run` endpoints for COB & delinquency.
+  - [ ] Emit per-row success/failure stats.
+- Frontend
+  - [ ] Upload wizard; status polling page.
+
+### Sprint 10 — Delinquency buckets & daily classification
+- Backend
+  - [ ] Buckets config; daily job writes `DelinquencyStatus` surfaced on loans.
+  - [ ] Guard against partial updates.
+- Frontend
+  - [ ] Display current bucket/DPD on loan cards/details; simple report link.
+
+### Sprint 11 — Reschedule (preview → commit, version-checked)
+- Backend
+  - [ ] `/loans/{id}/reschedule/preview` returns schedule + `previewVersion`.
+  - [ ] `/loans/{id}/reschedule/commit` requires `Idempotency-Key` + matching `previewVersion` or 409.
+- Frontend
+  - [ ] Side-by-side schedule diff; explicit “Commit” step.
+
+### Sprint 12 — Reports (loan portfolio, delinquency) + CSV/JSON export
+- Backend
+  - [ ] `/reports/{loanPortfolio|delinquency}/run?format=JSON|CSV`.
+- Frontend
+  - [ ] Params form + “Download CSV”.
+
+### Sprint 13 — Webhooks v1 (feature-flagged)
+- Backend
+  - [ ] Transactional outbox + dispatcher; events: `loan.approved`, `loan.disbursed`, `loan.transaction.posted`, `loan.status.changed`, `loan.delinquency.updated`.
+  - [ ] Signed deliveries (HMAC-SHA256 over raw body) with `X-LM-*` headers; retries/backoff; redelivery endpoint.
+  - [ ] Management endpoints: register/list/delete/test; deliveries list/redeliver.
+
+### Sprint 14 — Observability & hardening
+- Backend
+  - [ ] Structured JSON logs, correlation IDs, metrics/traces (OpenTelemetry).
+  - [ ] Rate limit sensitive endpoints; ETag/optimistic locking where applicable.
+  - [ ] Deployment hardening (Uvicorn behind a manager; health checks).
+- Frontend
+  - [ ] Error boundaries; consistent toast errors; audit display.
+- Security
+  - [ ] Basic Auth only over HTTPS; prefer server-side proxying of `Authorization` rather than storing creds in localStorage.
+
+## “Done” checklist (reuse every sprint)
+- [ ] Contract tests pass against OpenAPI; FE compiles with generated types and can make happy-path calls.
+- [ ] Unit + integration tests green (pytest + FastAPI TestClient; Jest/RTL on FE where applicable).
+- [ ] RBAC enforced server-side; no client-only authorization.
+- [ ] Observability includes `correlationId` and user/role where allowed.
+- [ ] Docs updated in OpenAPI and FE how-to; include screenshots for UI changes.
