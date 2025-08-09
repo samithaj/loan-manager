@@ -169,9 +169,9 @@ This is the execution checklist for AI agents. Each sprint has concrete tasks fo
   - [ ] CI: lint/format/test; optional pre-commit; Dockerfiles (dev/prod).
   - [ ] Observability seed: correlation ID middleware; JSON logs.
 
-### Sprint 1 — Org & reference data (offices, staff, holidays, currency, payment types)
+### Sprint 1 — Org & reference data (offices, staff, holidays)
 - Backend
-  - [ ] Implement GET `/offices`, `/staff`, `/holidays`, `/currencies`, `/payment-types`.
+  - [ ] Implement GET `/offices`, `/staff`, `/holidays`.
   - [ ] Add pagination + `sort` consistently where applicable.
 - Frontend
   - [ ] Simple tables with paging/sorting; role-gated access.

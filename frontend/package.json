@@ -1,0 +1,33 @@
+{
+  "name": "frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "dev:full": "make -C .. dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typegen": "openapi-typescript ../openapi/schema.yml -o src/types/api.d.ts",
+    "ci": "npm run typegen && npm run lint && npm run build"
+  },
+  "dependencies": {
+    "next": "15.4.6",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "jose": "^5.9.3"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "15.4.6",
+    "openapi-fetch": "^0.14.0",
+    "openapi-typescript": "^7.8.0",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

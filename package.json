@@ -1,0 +1,16 @@
+{
+  "name": "loan-manager-root",
+  "private": true,
+  "scripts": {
+    "supabase:migration:new": "pnpx supabase migration new",
+    "supabase:migration:up": "pnpm supabase migration up --db-url $DB_URL",
+    "supabase:db:reset": "pnpm supabase db reset --db-url $DB_URL",
+    "supabase:db:diff": "pnpm supabase db diff --use-migra --db-url $DB_URL",
+    "db:seed": "bash scripts/seed-db.sh"
+  }
+}
+
+
+
+
+

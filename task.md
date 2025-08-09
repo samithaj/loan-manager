@@ -7,7 +7,7 @@
 
 **Loan Manager** is a single-tenant lending platform with:
 
- * **Backend:** Python **FastAPI** (HTTP Basic Auth) exposing open APIs for client/loan lifecycle, loan actions (repay, prepay, foreclosure, write-off, waive interest, recovery), charges, collateral (incl. vehicle inventory), documents (incl. bulk upload), delinquency buckets & daily classification job, schedule preview/reschedule, receipts, and minimal reporting.
+* **Backend:** Python **FastAPI** (HTTP Basic Auth) exposing open APIs for client/loan lifecycle, loan actions (repay, prepay, foreclosure, write-off, waive interest, recovery), charges, collateral (incl. bicycle inventory), documents (incl. bulk upload), delinquency buckets & daily classification job, schedule preview/reschedule, receipts, and minimal reporting.
 * **Frontend:** **Next.js + Tailwind CSS**, role-aware UI for loan officers, tellers/collections, and admins, featuring loan workspaces, action drawers, printable receipts (react-to-print), and report runners.
 * **“Living contract”:** One **OpenAPI** spec used by FastAPI and auto-generated FE types/clients—so the UI and API never drift.
 
@@ -26,18 +26,18 @@
 
 ## In scope
 
-* **Auth:** JWT (HttpOnly cookies) issued by FastAPI; JWKS exposed for verification. Single tenant (no tenant selector). Frontend does UX-only guards; server enforces RBAC.
-* **Clients:** Create/edit/view/delete; link to loans; bulk upload CSV.
+* **Auth:** HTTP Basic (over TLS). Single tenant (no tenant selector).
+* **Clients:** Create/edit/view; link to loans; bulk upload CSV.
 * **Loan products:** Terms, rates, repayment schedule rules.
 * **Loans:** Application → approval → disbursement → transactions; schedule preview/reschedule; closure.
 * **Loan actions:** repayment, prepay, foreclosure, write-off, waive interest, recovery payment.
 * **Charges:** Add/adjust/remove; pay charge (cash only).
-* **Collateral:** Simple collateral (land, existing vehicle) **plus** basic **vehicle inventory** model for new vehicle (e.g., bicycle) sales financing.
+* **Collateral:** Simple collateral (land, existing vehicle) **plus** basic **bicycle inventory** model for new-bicycle sales financing.
 * **Documents:** Upload/download (per loan & per client), preview common types; **bulk upload** for loans/clients CSV.
 * **Delinquency:** Configurable buckets; daily classification job; display bucket on loans.
 * **Reports:** Minimal runner: loan portfolio/delinquency; CSV/JSON.
 * **Jobs:** Start/track batch jobs (COB, delinquency), restricted to a “batch” process.
-* **Org data:** Offices, staff, holidays with separate UI pages and full CRUD; currency fixed to LKR; payment type fixed to CASH.
+* **Org data:** Offices, staff, holidays; **currency fixed to LKR**; **payment type fixed to CASH**.
 * **Receipts:** Repayment payload returns `receiptNumber`; FE prints via react-to-print.
 
 ## Out of scope
@@ -51,32 +51,30 @@
 | ID   | Story                                                    | Acceptance Criteria                                                                 | Priority |
 | ---- | -------------------------------------------------------- | ----------------------------------------------------------------------------------- | -------- |
 | L-1  | As a user, I sign in with Basic auth                     | Valid creds → 200; otherwise 401; session persisted in browser securely             | High     |
-| L-2  | As a user, I create/edit/view/delete clients             | CRUD with validation; duplicates prevented by NIC/phone if configured               | High     |
+| L-2  | As a user, I create/edit/view clients                    | CRUD with validation; duplicates prevented by NIC/phone if configured               | High     |
 | L-3  | As a user, I bulk upload clients/loans                   | Upload CSV → job ID; status shows success/failure per row                           | High     |
 | L-4  | As a loan officer, I submit/approve/disburse loans       | Status transitions enforced; audit logged                                           | High     |
 | L-5  | As a teller, I post repayments and print receipts        | Response includes `receiptNumber`; printable receipt generated                      | High     |
 | L-6  | As a user, I perform loan actions                        | Prepay/foreclosure/write-off/waiveInterest/recovery succeed with correct validation | High     |
 | L-7  | As a user, I manage charges                              | Add/update/remove; pay charge in CASH mode only                                     | High     |
-| L-8  | As a user, I manage collateral (incl. vehicle inventory) | Add vehicle inventory entry or attach simple collateral types                       | Medium   |
+| L-8  | As a user, I manage collateral (incl. bicycle inventory) | Add bicycle inventory entry or attach simple collateral types                       | Medium   |
 | L-9  | As a user, I upload loan/client documents                | Multipart upload; list/download/preview; size/type limits                           | Medium   |
 | L-10 | As ops, I run COB & delinquency job                      | Start job; poll status; errors logged; no partial data corruption                   | Medium   |
 | L-11 | As a user, I reschedule a loan                           | Preview new schedule before commit; irreversible when committed                     | Medium   |
 | L-12 | As a user, I run basic reports                           | Parameterized report runner; CSV/JSON export                                        | Medium   |
-| L-13 | As a loan officer, vehicle auto-allocates on disburse (when applicable) | If `vehicleInventoryId` provided or pre-allocated, disburse atomically links item → SOLD and to the loan; otherwise proceed using other collateral | Medium   |
 
 ---
 
 # Functional overview (Loans)
 
-* **Auth & Roles:** JWT cookies + RBAC (view/create/approve/disburse/postTransaction/manageCharges/manageCollateral/manageDocuments/runJobs/runReports/admin) with granular reschedule permissions: `loan.reschedule.preview` and `loan.reschedule.commit`. `/v1/me` returns username and roles from JWT claims.
+* **Auth & Roles:** Basic auth; RBAC (view/create/approve/disburse/postTransaction/manageCharges/manageCollateral/manageDocuments/runJobs/runReports/admin).
 * **Clients & Loans:** Linked lifecycle; strict status transitions; idempotent state-changing calls.
 * **Transactions & Receipts:** All value-changing actions produce durable transactions with `receiptNumber`.
-* **Collateral:** Simple schema + vehicle inventory entity for retail vehicle (e.g., bicycle) financing.
+* **Collateral:** Simple schema + bicycle inventory entity for retail bike financing.
 * **Documents:** Multipart storage with virus-scan hook option; signed download URLs optional.
 * **Delinquency:** Config buckets; daily job; surface current bucket + days past due.
 * **Reports:** Read-only runner with whitelisted parameters; no SQL exposure to FE.
 * **Jobs:** Async, tracked via `/jobs/{jobId}`; only available on batch host (config flag).
-* **Vehicle inventory allocation:** Optional auto-allocation on **disbursement** when a `vehicleInventoryId` is provided (or pre-allocated to the loan). If other collateral (LAND/VEHICLE) is present and no inventory item is selected, disbursement still proceeds. Inventory state changes are atomic within the disbursement transaction: `IN_STOCK → ALLOCATED (optional reserve) → SOLD`. Concurrency conflicts return `409`.
 
 ---
 
@@ -89,57 +87,6 @@
 
 ---
 
-## Why you need webhooks
-
-- **Real-time integrations without polling:** notify external systems when a loan is approved/disbursed/paid.
-- **Receipts & customer comms:** trigger a small service to print a receipt or send SMS/WhatsApp on `loan.transaction.posted`.
-- **Ops & analytics:** stream events into a warehouse/log sink; reconcile cash, monitor delinquency changes.
-- **Safer than direct coupling:** keep your core API clean; partners subscribe to events you choose to expose.
-- **Auditability:** immutable event log + delivery history = easier investigations.
-
-### My recommendation
-
-Ship a minimal, feature-flagged webhook layer now:
-
-- **Events (v1):** `loan.approved`, `loan.disbursed`, `loan.transaction.posted`, `loan.status.changed`, `loan.delinquency.updated`.
-- **Outbox pattern** in DB → signed HTTP POST deliveries (HMAC-SHA256 over body).
-- **Retries** with backoff; **replay** endpoint; **delivery log**.
-
-Delivery request (example):
-
-```json
-{
-  "eventId": "evt_123",
-  "eventType": "loan.transaction.posted",
-  "occurredAt": "2025-08-08T09:15:00Z",
-  "tenant": "single",
-  "data": {
-    "loanId": "LN-00123",
-    "transaction": {
-      "id": "TX-987",
-      "type": "REPAYMENT",
-      "amount": 12500,
-      "date": "2025-08-08",
-      "receiptNumber": "RCPT-5567"
-    }
-  }
-}
-```
-
-Headers: `X-LM-Event-ID`, `X-LM-Event-Type`, `X-LM-Timestamp`, `X-LM-Signature` (HMAC-SHA256 over body).
-
-Retry policy: 0s → 30s → 2m → 10m → 1h (max 5). Timeout 5s.
-
-Idempotency: receivers must de-dupe by `eventId`.
-
-### OpenAPI additions (concise)
-
-- `POST /webhooks` – register a target URL & secret
-- `GET /webhooks` / `DELETE /webhooks/{id}`
-- `POST /webhooks/{id}:test` – send a sample event
-- `GET /webhooks/deliveries?webhookId=…` – list recent attempts
-- `POST /webhooks/deliveries/{deliveryId}:redeliver` – manual retry
-
 # Data model (Loans)
 
 **Core entities**
@@ -149,8 +96,8 @@ Idempotency: receivers must de-dupe by `eventId`.
 * **LoanAccount** `{id, clientId, productId, principal, interestRate, termMonths, status, disbursedOn, schedule[], delinquencyStatus, collateral[], …}`
 * **LoanTransaction** `{id, loanId, type, amount, date, receiptNumber, postedBy, …}`
 * **LoanCharge** `{id, loanId, name, amount, dueDate, status}`
-* **Collateral** `{id, loanId, type (VEHICLE|LAND), details:{…}, value}`
-* **VehicleInventory** `{id, vinOrFrameNumber, brand, model, color, plate?, purchasePrice, msrp, status (IN_STOCK|ALLOCATED|SOLD), linkedLoanId?}`
+* **Collateral** `{id, loanId, type (BICYCLE|VEHICLE|LAND), details:{…}, value}`
+* **BicycleInventory** `{id, frameNumber, brand, model, color, purchasePrice, msrp, status (IN_STOCK|ALLOCATED|SOLD), linkedLoanId?}`
 * **Document** `{id, ownerType (CLIENT|LOAN), ownerId, name, mimeType, size, uploadedOn}`
 * **DelinquencyBucket** `{id, name, minDays, maxDays}`
 * **DelinquencyStatus** `{loanId, currentBucketId, daysPastDue, asOfDate}`
@@ -216,21 +163,6 @@ components:
       in: header
       schema: { type: string }
       description: "Provide for state-changing POSTs to ensure idempotency."
-  headers:
-    X-LM-Event-ID:
-      description: Unique event id for idempotency at receivers
-      schema: { type: string }
-    X-LM-Event-Type:
-      description: Event type name
-      schema:
-        type: string
-        enum: [loan.approved, loan.disbursed, loan.transaction.posted, loan.status.changed, loan.delinquency.updated]
-    X-LM-Timestamp:
-      description: Event creation time (server clock)
-      schema: { type: string, format: date-time }
-    X-LM-Signature:
-      description: HMAC-SHA256 (hex) over raw request body using the webhook's secret
-      schema: { type: string }
   schemas:
     Error:
       type: object
@@ -334,21 +266,20 @@ components:
       required: [id, type, value]
       properties:
         id: { type: string }
-        type: { type: string, enum: [VEHICLE, LAND] }
+        type: { type: string, enum: [BICYCLE, VEHICLE, LAND] }
         value: { type: number }
         details:
           type: object
-          description: "For VEHICLE: inventoryId (if from inventory), plate, vin or frameNumber; LAND: deedNo, location."
+          description: "For BICYCLE: frameNumber, brand, model; VEHICLE: plate, vin; LAND: deedNo, location."
           additionalProperties: true
-    VehicleInventory:
+    BicycleInventory:
       type: object
-      required: [id, brand, model, status]
+      required: [id, frameNumber, brand, model, status]
       properties:
         id: { type: string }
-        vinOrFrameNumber: { type: string }
+        frameNumber: { type: string }
         brand: { type: string }
         model: { type: string }
-        plate: { type: string, nullable: true }
         color: { type: string, nullable: true }
         purchasePrice: { type: number, nullable: true }
         msrp: { type: number, nullable: true }
@@ -408,140 +339,6 @@ components:
       properties:
         code: { type: string, enum: [CASH] }
         name: { type: string, default: "Cash" }
-
-    # Webhooks
-    Webhook:
-      type: object
-      required: [id, url, active, createdOn]
-      properties:
-        id: { type: string }
-        url: { type: string, format: uri }
-        secret:
-          type: string
-          writeOnly: true
-          description: "HMAC secret used to sign deliveries."
-        active: { type: boolean, default: true }
-        createdOn: { type: string, format: date-time }
-    WebhookCreate:
-      type: object
-      required: [url, secret]
-      properties:
-        url: { type: string, format: uri }
-        secret: { type: string }
-    WebhookDelivery:
-      type: object
-      required: [id, webhookId, eventId, eventType, status, attemptCount]
-      properties:
-        id: { type: string }
-        webhookId: { type: string }
-        eventId: { type: string }
-        eventType:
-          type: string
-          enum: [loan.approved, loan.disbursed, loan.transaction.posted, loan.status.changed, loan.delinquency.updated]
-        status: { type: string, enum: [PENDING, DELIVERED, FAILED] }
-        attemptCount: { type: integer }
-        lastAttemptAt: { type: string, format: date-time, nullable: true }
-        lastResponseStatus: { type: integer, nullable: true }
-        lastError: { type: string, nullable: true }
-    WebhookEvent:
-      type: object
-      required: [eventId, eventType, occurredAt, tenant, data]
-      properties:
-        eventId: { type: string }
-        eventType:
-          type: string
-          enum: [loan.approved, loan.disbursed, loan.transaction.posted, loan.status.changed, loan.delinquency.updated]
-        occurredAt: { type: string, format: date-time }
-        tenant: { type: string, description: "Tenant identifier; 'single' in this deployment." }
-        data:
-          description: "Event-specific payload. See event data schemas."
-          oneOf:
-            - $ref: '#/components/schemas/LoanApprovedEventData'
-            - $ref: '#/components/schemas/LoanDisbursedEventData'
-            - $ref: '#/components/schemas/LoanTransactionPostedEventData'
-            - $ref: '#/components/schemas/LoanStatusChangedEventData'
-            - $ref: '#/components/schemas/LoanDelinquencyUpdatedEventData'
-    # Event data payloads
-    LoanApprovedEventData:
-      type: object
-      required: [loanId]
-      properties:
-        loanId: { type: string }
-    LoanDisbursedEventData:
-      type: object
-      required: [loanId]
-      properties:
-        loanId: { type: string }
-    LoanTransactionPostedEventData:
-      type: object
-      required: [loanId, transaction]
-      properties:
-        loanId: { type: string }
-        transaction: { $ref: '#/components/schemas/LoanTransaction' }
-    LoanStatusChangedEventData:
-      type: object
-      required: [loanId, fromStatus, toStatus]
-      properties:
-        loanId: { type: string }
-        fromStatus: { type: string, enum: [PENDING, APPROVED, DISBURSED, CLOSED, WRITTEN_OFF] }
-        toStatus: { type: string, enum: [PENDING, APPROVED, DISBURSED, CLOSED, WRITTEN_OFF] }
-    LoanDelinquencyUpdatedEventData:
-      type: object
-      required: [loanId, delinquencyStatus]
-      properties:
-        loanId: { type: string }
-        delinquencyStatus: { $ref: '#/components/schemas/DelinquencyStatus' }
-
-webhooks:
-  eventDelivery:
-    post:
-      summary: Outbound webhook event delivery to subscriber URLs
-      description: |
-        The platform sends signed HTTP POSTs to registered webhook URLs with HMAC-SHA256 over the raw body using the subscriber's secret.
-        Retry policy: 0s → 30s → 2m → 10m → 1h (max 5). Timeout 5s. Any 2xx is considered success.
-      parameters:
-        - name: X-LM-Event-ID
-          in: header
-          required: true
-          schema: { type: string }
-        - name: X-LM-Event-Type
-          in: header
-          required: true
-          schema:
-            type: string
-            enum: [loan.approved, loan.disbursed, loan.transaction.posted, loan.status.changed, loan.delinquency.updated]
-        - name: X-LM-Timestamp
-          in: header
-          required: true
-          schema: { type: string, format: date-time }
-        - name: X-LM-Signature
-          in: header
-          required: true
-          schema: { type: string }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/WebhookEvent' }
-            examples:
-              transactionPosted:
-                summary: loan.transaction.posted payload
-                value:
-                  eventId: evt_123
-                  eventType: loan.transaction.posted
-                  occurredAt: 2025-08-08T09:15:00Z
-                  tenant: single
-                  data:
-                    loanId: LN-00123
-                    transaction:
-                      id: TX-987
-                      loanId: LN-00123
-                      type: REPAYMENT
-                      amount: 12500
-                      date: 2025-08-08
-                      receiptNumber: RCPT-5567
-      responses:
-        '200': { description: Acknowledged }
 
 paths:
   /health:
@@ -715,11 +512,10 @@ paths:
           application/json:
             schema:
               type: object
-              description: "Fields depend on command; repayment-like commands require {amount, date}. When command=disburse, you may provide vehicleInventoryId to auto-allocate/sell an inventory vehicle to this loan."
+              description: "Fields depend on command; repayment-like commands require {amount, date}."
               properties:
                 amount: { type: number }
                 date: { type: string, format: date }
-                vehicleInventoryId: { type: string, description: "When command=disburse, the inventory item to allocate/sell." }
                 notes: { type: string }
       responses:
         '200':
@@ -811,62 +607,28 @@ paths:
       responses:
         '204': { description: Deleted }
 
-  # Vehicle inventory
-  /vehicle-inventory:
+  # Bicycle inventory
+  /bicycle-inventory:
     get:
-      summary: List vehicle inventory
+      summary: List bicycle inventory
       parameters: [ { $ref: '#/components/parameters/Page' }, { $ref: '#/components/parameters/PageSize' }, { name: status, in: query, schema: { type: string } }, { name: q, in: query, schema: { type: string } } ]
       responses:
         '200':
           description: Inventory
-          content: { application/json: { schema: { type: object, properties: { items: { type: array, items: { $ref: '#/components/schemas/VehicleInventory' } }, page: { type: integer }, pageSize: { type: integer }, total: { type: integer } } } } }
+          content: { application/json: { schema: { type: object, properties: { items: { type: array, items: { $ref: '#/components/schemas/BicycleInventory' } }, page: { type: integer }, pageSize: { type: integer }, total: { type: integer } } } } }
     post:
       summary: Create inventory item
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/VehicleInventory' } } } }
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/BicycleInventory' } } } }
       responses:
-        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/VehicleInventory' } } } }
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/BicycleInventory' } } } }
 
-  /vehicle-inventory/{id}:
+  /bicycle-inventory/{id}:
     put:
       summary: Update inventory item
       parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/VehicleInventory' } } } }
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/BicycleInventory' } } } }
       responses:
-        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/VehicleInventory' } } } }
-
-  /vehicle-inventory/{id}:allocate:
-    post:
-      summary: Allocate (reserve) a vehicle to a loan (pre-disbursement)
-      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [loanId]
-              properties:
-                loanId: { type: string }
-      responses:
-        '200': { description: Allocated, content: { application/json: { schema: { $ref: '#/components/schemas/VehicleInventory' } } } }
-        '409': { description: Conflict (already allocated/sold), content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-
-  /vehicle-inventory/{id}:release:
-    post:
-      summary: Release a reserved vehicle from a loan
-      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [loanId]
-              properties:
-                loanId: { type: string }
-      responses:
-        '200': { description: Released, content: { application/json: { schema: { $ref: '#/components/schemas/VehicleInventory' } } } }
-        '409': { description: Conflict (not allocated to this loan), content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/BicycleInventory' } } } }
 
   # Documents
   /clients/{clientId}/documents:
@@ -1077,70 +839,17 @@ paths:
       responses:
         '200': { description: Holidays, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Holiday' } } } } }
 
-   # Note: Currency fixed to LKR and payment type fixed to CASH; endpoints not exposed.
-
-  # Webhook management
-  /webhooks:
+  /currencies:
     get:
-      summary: List registered webhooks
+      summary: Get configured currency (LKR only)
       responses:
-        '200':
-          description: Webhooks
-          content:
-            application/json:
-              schema:
-                type: array
-                items: { $ref: '#/components/schemas/Webhook' }
-    post:
-      summary: Register a webhook
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/WebhookCreate' }
-      responses:
-        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Webhook' } } } }
+        '200': { description: Currency, content: { application/json: { schema: { $ref: '#/components/schemas/Currency' } } } }
 
-  /webhooks/{id}:
-    delete:
-      summary: Delete a webhook
-      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
-      responses:
-        '204': { description: Deleted }
-
-  /webhooks/{id}:test:
-    post:
-      summary: Send a sample event to a webhook
-      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
-      responses:
-        '202': { description: Test enqueued }
-
-  /webhooks/deliveries:
+  /payment-types:
     get:
-      summary: List recent deliveries
-      parameters:
-        - { name: webhookId, in: query, schema: { type: string } }
-        - { $ref: '#/components/parameters/Page' }
-        - { $ref: '#/components/parameters/PageSize' }
+      summary: Get payment type (CASH only)
       responses:
-        '200':
-          description: Deliveries
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  items: { type: array, items: { $ref: '#/components/schemas/WebhookDelivery' } }
-                  page: { type: integer }
-                  pageSize: { type: integer }
-                  total: { type: integer }
-
-  /webhooks/deliveries/{deliveryId}:redeliver:
-    post:
-      summary: Trigger a redelivery attempt
-      parameters: [ { name: deliveryId, in: path, required: true, schema: { type: string } } ]
-      responses:
-        '202': { description: Redelivery enqueued }
+        '200': { description: PaymentType, content: { application/json: { schema: { $ref: '#/components/schemas/PaymentType' } } } }
 
 ```
 
@@ -1186,20 +895,6 @@ const { data: tx } = await api.POST('/loans/{loanId}', {
   headers: { 'Idempotency-Key': crypto.randomUUID() },
 });
 // tx.transaction.receiptNumber -> render with react-to-print
-
-// reschedule preview -> commit flow (previewVersion token)
-const preview = await api.POST('/loans/{loanId}/reschedule/preview', {
-  params: { path: { loanId } },
-  body: { rescheduleFromDate, newInterestRate },
-});
-if (preview.data) {
-  const { previewVersion } = preview.data;
-  const commit = await api.POST('/loans/{loanId}/reschedule/commit', {
-    params: { path: { loanId } },
-    headers: { 'Idempotency-Key': crypto.randomUUID() },
-    body: { rescheduleFromDate, newInterestRate, previewVersion },
-  });
-}
 ```
 
 > If you prefer **fully generated clients**, swap `openapi-fetch` for **orval** or **openapi-generator** (typescript-fetch). The key is: **do not hand-code request/response types**—always import from the generated definitions.

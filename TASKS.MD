@@ -6,15 +6,26 @@
 
 * **Backend (FastAPI)**
 
-  * Create `schema.yml` (OpenAPI 3.1) with `/health`, `/me`.
+  * [x] Create `schema.yml` (OpenAPI 3.1) with `/health`, `/me`.
   * Wire FastAPI project skeleton, env config, Pydantic settings, basic logging, error handler.
+    * [x] App factory + `/v1` router; `/health`, `/me` endpoints
+    * [x] Pydantic settings for env/config (`LM_` env; `LM_DATABASE_URL`)
+    * [x] Basic logging + JSON error handler + correlation ID middleware
+    * [x] Users bootstrap API: `POST /v1/users` (demo) + `/v1/me` DB-backed
 * **Frontend (Next.js + Tailwind)**
 
-  * App shell, route guards, .env, role-aware layout stubs.
-  * Minimal auth form that stores creds only in memory for now (we’ll tighten shortly).
+  * [x] App shell, route guards, .env, role-aware layout stubs.
+  * [x] Dedicated login page (`/login`) that verifies `/v1/me` and saves creds to `localStorage`.
+  * [x] Home simplified; link to `/login`. Hydration warning suppressed at root `<html>`.
 * **DevEx**
 
-  * Generate types & client: `openapi-typescript` + `openapi-fetch`.
+  * [x] Generate types & client: `openapi-typescript` + `openapi-fetch`.
+  * [x] Makefile for concurrent dev (`make dev`) and detached runners (`make up/status/logs/stop`).
+  * [x] FE scripts: `dev:full`, `ci` (typegen+lint+build)
+  * [x] Backend uses uv-only with `backend/requirements.txt` (Poetry removed)
+  * [x] Install PostgreSQL 17 locally via Homebrew
+  * [x] Database folder with migrations and seed (`make db` applies)
+  * [x] Root `pnpm` scripts for supabase-like workflows (migrations/seed helpers)
   * CI: lint/format/test; pre-commit hooks; Dockerfiles (dev/prod).
   * Observability seed: request ID/correlation ID middleware; log JSON.
 * **Best practices to follow**
@@ -26,17 +37,20 @@
 
 ---
 
-# Sprint 1 — Org & reference data (offices, staff, holidays, currency, payment types)
+# Sprint 1 — Org & reference data (offices, staff, holidays)
 
 **Goal:** Read-only reference screens to unblock later forms.
 
 * **Backend**
 
-  * `/offices`, `/staff`, `/holidays`, `/currencies`, `/payment-types` (GET).
-  * Pagination + `sort` implemented consistently.
+  * [x] `/offices`, `/staff`, `/holidays` (GET).
+  * [x] Basic CRUD for `/offices`, `/staff`, `/holidays`.
+  * Pagination + `sort` implemented consistently. (client-side for now)
 * **Frontend**
 
-  * Simple tables with paging/sorting, role-gated access.
+  * [x] Simple tables with paging/sorting at `/reference`.
+  * [x] Holidays CRUD UI (add/edit/delete with optimistic updates); no-refresh updates.
+  * [x] Separate pages: `/reference/offices`, `/reference/staff`, `/reference/holidays` with add/edit/delete UIs.
 * **Best practices**
 
   * Consistent pagination/sorting and stable ordering improve API usability. ([Stack Overflow][5])
@@ -49,11 +63,13 @@
 
 * **Backend**
 
-  * `/clients` list/create; `/clients/{id}` get/update; basic search `q`.
+  * [x] `/clients` list/create; `/clients/{id}` get/update/delete; basic search `q`.
   * Server-side validation (NIC/mobile uniqueness if configured).
 * **Frontend**
 
-  * Client list, create/edit forms, inline validation.
+  * [x] Client list, create/edit/delete, inline validation.
+  * [x] Client detail view at `/clients/{id}`.
+  * [x] Homepage links to reference and clients pages.
 * **Testing**
 
   * FastAPI `TestClient` + pytest for happy/edge paths. ([FastAPI][6])
@@ -69,11 +85,12 @@
 
 * **Backend**
 
-  * `/loan-products` list/create.
-  * Validation: interestRate bounds, repaymentFrequency enum.
+  * [x] `/loan-products` list/create.
+  * [x] Validation: interestRate bounds, repaymentFrequency enum.
 * **Frontend**
 
-  * Product list & create form.
+  * [x] Product list & create form.
+  * [x] Top header toolbar with authenticated menu; Home shows Login when unauthenticated.
 * **Best practices**
 
   * Keep validation at the server; mirror basic rules client-side only for UX (defense in depth per OWASP). ([martinfowler.com][8])

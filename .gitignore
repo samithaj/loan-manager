@@ -1,0 +1,58 @@
+# --- OS / Editors ---
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# --- Logs & temp ---
+*.log
+*.log.*
+*.tmp
+tmp/
+.devlogs/
+
+# --- Env files ---
+.env
+.env.*
+!/frontend/.env.example
+!/backend/.env.example
+
+# --- Python / FastAPI ---
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+.venv/
+venv/
+env/
+build/
+dist/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+# If Poetry artifacts linger but you don't use Poetry anymore
+backend/poetry.lock
+poetry.lock
+
+# --- Node / Next.js ---
+node_modules/
+.next/
+.turbo/
+.vercel/
+out/
+.pnpm-store/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# --- Generated artifacts (adjust as needed) ---
+# OpenAPI clients/types (keep if you commit them)
+# frontend/src/types/api.d.ts
+
+
