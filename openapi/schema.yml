@@ -91,6 +91,154 @@ components:
         repaymentFrequency:
           type: string
           enum: [DAILY, WEEKLY, BIWEEKLY, MONTHLY]
+    Loan:
+      type: object
+      required: [id, clientId, productId, principal, termMonths, status, createdOn]
+      properties:
+        id: { type: string }
+        clientId: { type: string }
+        productId: { type: string }
+        principal: { type: number, minimum: 0 }
+        interestRate: { type: number, minimum: 0, maximum: 100, nullable: true }
+        termMonths: { type: integer, minimum: 1 }
+        status: 
+          type: string
+          enum: [PENDING, APPROVED, DISBURSED, CLOSED]
+        disbursedOn: { type: string, format: date, nullable: true }
+        createdOn: { type: string, format: date-time }
+    LoanCreate:
+      type: object
+      required: [clientId, productId, principal]
+      properties:
+        id: { type: string }
+        clientId: { type: string }
+        productId: { type: string }
+        principal: { type: number, minimum: 0 }
+        interestRate: { type: number, minimum: 0, maximum: 100, nullable: true }
+        termMonths: { type: integer, minimum: 1, nullable: true }
+    LoanUpdate:
+      type: object
+      properties:
+        clientId: { type: string }
+        productId: { type: string }
+        principal: { type: number, minimum: 0 }
+        interestRate: { type: number, minimum: 0, maximum: 100 }
+        termMonths: { type: integer, minimum: 1 }
+    Transaction:
+      type: object
+      required: [id, loanId, type, amount, date, receiptNumber]
+      properties:
+        id: { type: string }
+        loanId: { type: string }
+        type: { type: string }
+        amount: { type: number }
+        date: { type: string, format: date }
+        receiptNumber: { type: string }
+        postedBy: { type: string, nullable: true }
+    LoanCommandResponse:
+      type: object
+      required: [loan]
+      properties:
+        loan: { $ref: '#/components/schemas/Loan' }
+        transaction: { $ref: '#/components/schemas/Transaction', nullable: true }
+    Charge:
+      type: object
+      required: [id, loanId, name, amount, status]
+      properties:
+        id: { type: string }
+        loanId: { type: string }
+        name: { type: string }
+        amount: { type: number, minimum: 0 }
+        dueDate: { type: string, format: date, nullable: true }
+        status:
+          type: string
+          enum: [PENDING, PAID, WAIVED]
+    ChargeCreate:
+      type: object
+      required: [name, amount]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        amount: { type: number, minimum: 0 }
+        dueDate: { type: string, format: date }
+    ChargePaymentResponse:
+      type: object
+      required: [charge, transaction]
+      properties:
+        charge: { $ref: '#/components/schemas/Charge' }
+        transaction: { $ref: '#/components/schemas/Transaction' }
+    Collateral:
+      type: object
+      required: [id, type, value]
+      properties:
+        id: { type: string }
+        loanId: { type: string, nullable: true }
+        type: { type: string }
+        value: { type: number, minimum: 0 }
+        details: { type: string, nullable: true }
+    CollateralCreate:
+      type: object
+      required: [type, value]
+      properties:
+        id: { type: string }
+        type: { type: string }
+        value: { type: number, minimum: 0 }
+        details: { type: string }
+    Vehicle:
+      type: object
+      required: [id, brand, model, status]
+      properties:
+        id: { type: string }
+        vinOrFrameNumber: { type: string, nullable: true }
+        brand: { type: string }
+        model: { type: string }
+        plate: { type: string, nullable: true }
+        color: { type: string, nullable: true }
+        purchasePrice: { type: number, minimum: 0, nullable: true }
+        msrp: { type: number, minimum: 0, nullable: true }
+        status:
+          type: string
+          enum: [IN_STOCK, ALLOCATED, SOLD]
+        linkedLoanId: { type: string, nullable: true }
+    VehicleCreate:
+      type: object
+      required: [brand, model]
+      properties:
+        id: { type: string }
+        vinOrFrameNumber: { type: string }
+        brand: { type: string }
+        model: { type: string }
+        plate: { type: string }
+        color: { type: string }
+        purchasePrice: { type: number, minimum: 0 }
+        msrp: { type: number, minimum: 0 }
+    Document:
+      type: object
+      required: [id, ownerType, ownerId, name, mimeType, size, uploadedOn]
+      properties:
+        id: { type: string }
+        ownerType: { type: string, enum: [CLIENT, LOAN] }
+        ownerId: { type: string }
+        name: { type: string }
+        mimeType: { type: string }
+        size: { type: integer, minimum: 0 }
+        uploadedOn: { type: string, format: date-time }
+    Job:
+      type: object
+      required: [id, type, status, createdOn]
+      properties:
+        id: { type: string }
+        type: { type: string, enum: [BULK_CLIENTS, BULK_LOANS, COB, DELINQUENCY] }
+        status: { type: string, enum: [PENDING, RUNNING, SUCCEEDED, FAILED] }
+        createdOn: { type: string, format: date-time }
+        startedOn: { type: string, format: date-time, nullable: true }
+        completedOn: { type: string, format: date-time, nullable: true }
+        totalRecords: { type: integer, nullable: true }
+        processedRecords: { type: integer, nullable: true }
+        successCount: { type: integer, nullable: true }
+        errorCount: { type: integer, nullable: true }
+        errorDetails: { type: string, nullable: true }
+        resultData: { type: string, nullable: true }
 paths:
   /health:
     get:
@@ -309,6 +457,411 @@ paths:
             schema: { $ref: '#/components/schemas/LoanProduct' }
       responses:
         '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/LoanProduct' } } } }
+
+  # Loans
+  /loans:
+    get:
+      summary: List loans
+      parameters:
+        - { name: skip, in: query, schema: { type: integer, minimum: 0, default: 0 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 1000, default: 100 } }
+        - { name: q, in: query, schema: { type: string } }
+      responses:
+        '200':
+          description: Loans
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Loan' }
+    post:
+      summary: Create loan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoanCreate' }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Loan' } } } }
+
+  /loans/{loanId}:
+    get:
+      summary: Get loan
+      parameters: [ { name: loanId, in: path, required: true, schema: { type: string } } ]
+      responses:
+        '200': { description: Loan, content: { application/json: { schema: { $ref: '#/components/schemas/Loan' } } } }
+        '404': { description: Not found, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    put:
+      summary: Update loan (PENDING only)
+      parameters: [ { name: loanId, in: path, required: true, schema: { type: string } } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoanUpdate' }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Loan' } } } }
+        '400': { description: Bad request, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '404': { description: Not found, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    post:
+      summary: Execute loan commands
+      parameters: 
+        - { name: loanId, in: path, required: true, schema: { type: string } }
+        - { name: command, in: query, required: true, schema: { type: string, enum: [approve, disburse, close] } }
+        - { name: disbursementDate, in: query, schema: { type: string, format: date } }
+      requestBody:
+        required: false
+      headers:
+        - { name: Idempotency-Key, required: true, schema: { type: string } }
+      responses:
+        '200': { description: Command executed, content: { application/json: { schema: { $ref: '#/components/schemas/LoanCommandResponse' } } } }
+        '400': { description: Bad request, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '404': { description: Not found, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /loans/{loanId}/transactions:
+    get:
+      summary: List loan transactions
+      parameters: [ { name: loanId, in: path, required: true, schema: { type: string } } ]
+      responses:
+        '200':
+          description: Transactions
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Transaction' }
+        '404': { description: Not found, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    post:
+      summary: Execute transaction commands
+      parameters: 
+        - { name: loanId, in: path, required: true, schema: { type: string } }
+        - { name: command, in: query, required: true, schema: { type: string, enum: [repayment, prepay, foreclosure, writeoff, waiveInterest, recovery] } }
+        - { name: amount, in: query, required: true, schema: { type: number, minimum: 0.01 } }
+        - { name: transactionDate, in: query, schema: { type: string, format: date } }
+      headers:
+        - { name: Idempotency-Key, required: true, schema: { type: string } }
+      responses:
+        '200': { description: Transaction created, content: { application/json: { schema: { $ref: '#/components/schemas/LoanCommandResponse' } } } }
+        '400': { description: Bad request, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '404': { description: Not found, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /loans/{loanId}/transactions/template:
+    get:
+      summary: Get transaction template
+      parameters: 
+        - { name: loanId, in: path, required: true, schema: { type: string } }
+        - { name: command, in: query, required: true, schema: { type: string, enum: [repayment, prepay, foreclosure, writeoff, waiveInterest, recovery] } }
+      responses:
+        '200':
+          description: Transaction template
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  command: { type: string }
+                  suggestedAmount: { type: number }
+                  currency: { type: string }
+                  receiptNumberPreview: { type: string }
+
+  /loans/{loanId}/charges:
+    get:
+      summary: List loan charges
+      parameters: [ { name: loanId, in: path, required: true, schema: { type: string } } ]
+      responses:
+        '200':
+          description: Charges
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Charge' }
+        '404': { description: Not found, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    post:
+      summary: Create charge
+      parameters: [ { name: loanId, in: path, required: true, schema: { type: string } } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ChargeCreate' }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Charge' } } } }
+        '404': { description: Not found, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /loans/{loanId}/charges/{chargeId}:
+    put:
+      summary: Update charge
+      parameters: 
+        - { name: loanId, in: path, required: true, schema: { type: string } }
+        - { name: chargeId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ChargeCreate' }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Charge' } } } }
+        '400': { description: Bad request, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '404': { description: Not found, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    delete:
+      summary: Delete charge
+      parameters: 
+        - { name: loanId, in: path, required: true, schema: { type: string } }
+        - { name: chargeId, in: path, required: true, schema: { type: string } }
+      responses:
+        '204': { description: Deleted }
+        '400': { description: Bad request, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '404': { description: Not found, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /loans/{loanId}/charges/{chargeId}/pay:
+    post:
+      summary: Pay charge
+      parameters: 
+        - { name: loanId, in: path, required: true, schema: { type: string } }
+        - { name: chargeId, in: path, required: true, schema: { type: string } }
+        - { name: amount, in: query, schema: { type: number, minimum: 0.01 } }
+        - { name: paymentDate, in: query, schema: { type: string, format: date } }
+      headers:
+        - { name: Idempotency-Key, required: true, schema: { type: string } }
+      responses:
+        '200': { description: Payment recorded, content: { application/json: { schema: { $ref: '#/components/schemas/ChargePaymentResponse' } } } }
+        '400': { description: Bad request, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '404': { description: Not found, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /loans/{loanId}/collaterals:
+    get:
+      summary: List loan collaterals
+      parameters: [ { name: loanId, in: path, required: true, schema: { type: string } } ]
+      responses:
+        '200':
+          description: Collaterals
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Collateral' }
+    post:
+      summary: Create collateral
+      parameters: [ { name: loanId, in: path, required: true, schema: { type: string } } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CollateralCreate' }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Collateral' } } } }
+
+  /loans/{loanId}/collaterals/{collateralId}:
+    put:
+      summary: Update collateral
+      parameters: 
+        - { name: loanId, in: path, required: true, schema: { type: string } }
+        - { name: collateralId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CollateralCreate' }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Collateral' } } } }
+    delete:
+      summary: Delete collateral
+      parameters: 
+        - { name: loanId, in: path, required: true, schema: { type: string } }
+        - { name: collateralId, in: path, required: true, schema: { type: string } }
+      responses:
+        '204': { description: Deleted }
+
+  /vehicle-inventory:
+    get:
+      summary: List vehicle inventory
+      parameters:
+        - { name: skip, in: query, schema: { type: integer, minimum: 0, default: 0 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 1000, default: 100 } }
+        - { name: status, in: query, schema: { type: string, enum: [IN_STOCK, ALLOCATED, SOLD] } }
+      responses:
+        '200':
+          description: Vehicles
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Vehicle' }
+    post:
+      summary: Create vehicle
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VehicleCreate' }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Vehicle' } } } }
+
+  /vehicle-inventory/{vehicleId}:
+    get:
+      summary: Get vehicle
+      parameters: [ { name: vehicleId, in: path, required: true, schema: { type: string } } ]
+      responses:
+        '200': { description: Vehicle, content: { application/json: { schema: { $ref: '#/components/schemas/Vehicle' } } } }
+    put:
+      summary: Update vehicle
+      parameters: [ { name: vehicleId, in: path, required: true, schema: { type: string } } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VehicleCreate' }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Vehicle' } } } }
+    delete:
+      summary: Delete vehicle
+      parameters: [ { name: vehicleId, in: path, required: true, schema: { type: string } } ]
+      responses:
+        '204': { description: Deleted }
+
+  /vehicle-inventory/{vehicleId}/allocate:
+    post:
+      summary: Allocate vehicle to loan
+      parameters: 
+        - { name: vehicleId, in: path, required: true, schema: { type: string } }
+        - { name: loanId, in: query, required: true, schema: { type: string } }
+      responses:
+        '200': { description: Allocated, content: { application/json: { schema: { $ref: '#/components/schemas/Vehicle' } } } }
+        '409': { description: Conflict, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /vehicle-inventory/{vehicleId}/release:
+    post:
+      summary: Release vehicle from allocation
+      parameters: [ { name: vehicleId, in: path, required: true, schema: { type: string } } ]
+      responses:
+        '200': { description: Released, content: { application/json: { schema: { $ref: '#/components/schemas/Vehicle' } } } }
+
+  /documents:
+    get:
+      summary: List documents
+      parameters:
+        - { name: ownerType, in: query, schema: { type: string, enum: [CLIENT, LOAN] } }
+        - { name: ownerId, in: query, schema: { type: string } }
+        - { name: skip, in: query, schema: { type: integer, minimum: 0, default: 0 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 1000, default: 100 } }
+      responses:
+        '200':
+          description: Documents
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Document' }
+    post:
+      summary: Upload document
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, ownerType, ownerId]
+              properties:
+                file: { type: string, format: binary }
+                ownerType: { type: string, enum: [CLIENT, LOAN] }
+                ownerId: { type: string }
+      responses:
+        '201': { description: Uploaded, content: { application/json: { schema: { $ref: '#/components/schemas/Document' } } } }
+        '400': { description: Bad request, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '413': { description: File too large, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /documents/{documentId}:
+    get:
+      summary: Download document
+      parameters: [ { name: documentId, in: path, required: true, schema: { type: string } } ]
+      responses:
+        '200':
+          description: File content
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '404': { description: Not found, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    delete:
+      summary: Delete document
+      parameters: [ { name: documentId, in: path, required: true, schema: { type: string } } ]
+      responses:
+        '204': { description: Deleted }
+        '404': { description: Not found, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /bulk/clients:
+    post:
+      summary: Bulk upload clients
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+      responses:
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jobId: { type: string }
+                  status: { type: string }
+        '400': { description: Bad request, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /bulk/loans:
+    post:
+      summary: Bulk upload loans
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+      responses:
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jobId: { type: string }
+                  status: { type: string }
+        '400': { description: Bad request, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /jobs:
+    get:
+      summary: List jobs
+      parameters:
+        - { name: skip, in: query, schema: { type: integer, minimum: 0, default: 0 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 1000, default: 100 } }
+        - { name: jobType, in: query, schema: { type: string } }
+      responses:
+        '200':
+          description: Jobs
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Job' }
+
+  /jobs/{jobId}:
+    get:
+      summary: Get job status
+      parameters: [ { name: jobId, in: path, required: true, schema: { type: string } } ]
+      responses:
+        '200': { description: Job status, content: { application/json: { schema: { $ref: '#/components/schemas/Job' } } } }
+        '404': { description: Not found, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
 
   # Auth (JWT cookies)
   /auth/login:

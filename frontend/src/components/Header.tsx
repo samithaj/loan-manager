@@ -51,6 +51,10 @@ export default function Header() {
               <Link href="/reference/holidays">Holidays</Link>
               <Link href="/loan-products">Loan products</Link>
               <Link href="/clients">Clients</Link>
+              <Link href="/loans">Loans</Link>
+              <Link href="/inventory">Inventory</Link>
+              <Link href="/bulk">Bulk Upload</Link>
+              <Link href="/reports">Reports</Link>
             </nav>
           )}
         </div>
