@@ -35,6 +35,10 @@ export default async function Home() {
             <li><Link className="underline" href="/reference/holidays">Holidays</Link></li>
             <li><Link className="underline" href="/loan-products">Loan products</Link></li>
             <li><Link className="underline" href="/clients">Clients</Link></li>
+            <li><Link className="underline" href="/loans">Loans</Link></li>
+            <li><Link className="underline" href="/inventory">Vehicle Inventory</Link></li>
+            <li><Link className="underline" href="/bulk">Bulk Upload</Link></li>
+            <li><Link className="underline" href="/reports">Reports</Link></li>
           </ul>
         </div>
       )}

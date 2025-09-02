@@ -12,10 +12,11 @@
     "ci": "npm run typegen && npm run lint && npm run build"
   },
   "dependencies": {
+    "jose": "^5.9.3",
     "next": "15.4.6",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "jose": "^5.9.3"
+    "react-to-print": "^3.1.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

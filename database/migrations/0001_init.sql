@@ -130,10 +130,53 @@ create table if not exists delinquency_status (
   as_of_date date not null
 );
 
+-- Jobs for async processing
+create table if not exists jobs (
+  id text primary key,
+  type text not null,
+  status text not null,
+  created_on timestamptz not null default now(),
+  started_on timestamptz,
+  completed_on timestamptz,
+  total_records int,
+  processed_records int,
+  success_count int,
+  error_count int,
+  error_details text,
+  result_data text
+);
+
+-- Webhooks
+create table if not exists webhook_endpoints (
+  id text primary key,
+  url text not null,
+  secret text not null,
+  events text not null,
+  active boolean not null default true,
+  created_on timestamptz not null default now()
+);
+
+create table if not exists webhook_deliveries (
+  id text primary key,
+  endpoint_id text not null references webhook_endpoints(id),
+  event_type text not null,
+  payload text not null,
+  status text not null,
+  attempts int not null default 0,
+  last_attempt timestamptz,
+  next_attempt timestamptz,
+  response_status int,
+  response_body text,
+  created_on timestamptz not null default now()
+);
+
 -- Helpful indexes
 create index if not exists idx_clients_display_name on clients (display_name);
 create index if not exists idx_loans_client on loans (client_id);
 create index if not exists idx_txn_loan on loan_transactions (loan_id);
+create index if not exists idx_jobs_type_status on jobs (type, status);
+create index if not exists idx_webhook_deliveries_endpoint on webhook_deliveries (endpoint_id);
+create index if not exists idx_webhook_deliveries_status on webhook_deliveries (status);
 
 
 
