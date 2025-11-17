@@ -13,6 +13,15 @@ from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pydantic import BaseModel
 import secrets  # noqa: F401
 from .routers import loan_products as loan_products_router
+from .routers import loans as loans_router
+from .routers import charges as charges_router
+from .routers import collateral as collateral_router
+from .routers import documents as documents_router
+from .routers import jobs as jobs_router
+from .routers import delinquency as delinquency_router
+from .routers import reschedule as reschedule_router
+from .routers import reports as reports_router
+from .routers import webhooks as webhooks_router
 from loguru import logger
 from .auth import router as auth_router
 from .rbac import get_current_user
@@ -85,6 +94,15 @@ def create_app() -> FastAPI:
     app.include_router(reference_router.router)
     app.include_router(clients_router.router)
     app.include_router(loan_products_router.router)
+    app.include_router(loans_router.router)
+    app.include_router(charges_router.router)
+    app.include_router(collateral_router.router)
+    app.include_router(documents_router.router)
+    app.include_router(jobs_router.router)
+    app.include_router(delinquency_router.router)
+    app.include_router(reschedule_router.router)
+    app.include_router(reports_router.router)
+    app.include_router(webhooks_router.router)
     app.include_router(auth_router)
     return app
 
