@@ -11,4 +11,6 @@ black==24.8.0
 mypy==1.11.1
 loguru==0.7.2
 python-jose[cryptography]==3.3.0
+Pillow==10.4.0
+python-multipart==0.0.9
 

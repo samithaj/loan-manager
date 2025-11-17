@@ -15,6 +15,11 @@ router = APIRouter(prefix="/v1")
 class OfficeOut(BaseModel):
     id: str
     name: str
+    allows_bicycle_sales: bool = True
+    bicycle_display_order: int = 0
+    map_coordinates: dict | None = None
+    operating_hours: str | None = None
+    public_description: str | None = None
 
 
 class StaffOut(BaseModel):
@@ -32,6 +37,11 @@ class HolidayOut(BaseModel):
 class OfficeIn(BaseModel):
     id: str
     name: str
+    allows_bicycle_sales: bool = True
+    bicycle_display_order: int = 0
+    map_coordinates: dict | None = None
+    operating_hours: str | None = None
+    public_description: str | None = None
 
 
 class StaffIn(BaseModel):
@@ -51,7 +61,15 @@ async def get_offices():
     async with SessionLocal() as session:  # type: AsyncSession
         result = await session.execute(select(Office).order_by(Office.id))
         rows = result.scalars().all()
-        return [OfficeOut(id=o.id, name=o.name) for o in rows]
+        return [OfficeOut(
+            id=o.id,
+            name=o.name,
+            allows_bicycle_sales=o.allows_bicycle_sales,
+            bicycle_display_order=o.bicycle_display_order,
+            map_coordinates=o.map_coordinates,
+            operating_hours=o.operating_hours,
+            public_description=o.public_description
+        ) for o in rows]
 
 
 @router.post("/offices", response_model=OfficeOut, status_code=201)
@@ -60,11 +78,27 @@ async def create_office(payload: OfficeIn):
         exists = await session.get(Office, payload.id)
         if exists:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail={"code": "OFFICE_EXISTS"})
-        office = Office(id=payload.id, name=payload.name)
+        office = Office(
+            id=payload.id,
+            name=payload.name,
+            allows_bicycle_sales=payload.allows_bicycle_sales,
+            bicycle_display_order=payload.bicycle_display_order,
+            map_coordinates=payload.map_coordinates,
+            operating_hours=payload.operating_hours,
+            public_description=payload.public_description
+        )
         session.add(office)
         await session.commit()
         await session.refresh(office)
-        return OfficeOut(id=office.id, name=office.name)
+        return OfficeOut(
+            id=office.id,
+            name=office.name,
+            allows_bicycle_sales=office.allows_bicycle_sales,
+            bicycle_display_order=office.bicycle_display_order,
+            map_coordinates=office.map_coordinates,
+            operating_hours=office.operating_hours,
+            public_description=office.public_description
+        )
 
 
 @router.put("/offices/{officeId}", response_model=OfficeOut)
@@ -74,9 +108,22 @@ async def update_office(officeId: str, payload: OfficeIn):
         if not office:
             raise HTTPException(status_code=404, detail={"code": "NOT_FOUND"})
         office.name = payload.name
+        office.allows_bicycle_sales = payload.allows_bicycle_sales
+        office.bicycle_display_order = payload.bicycle_display_order
+        office.map_coordinates = payload.map_coordinates
+        office.operating_hours = payload.operating_hours
+        office.public_description = payload.public_description
         await session.commit()
         await session.refresh(office)
-        return OfficeOut(id=office.id, name=office.name)
+        return OfficeOut(
+            id=office.id,
+            name=office.name,
+            allows_bicycle_sales=office.allows_bicycle_sales,
+            bicycle_display_order=office.bicycle_display_order,
+            map_coordinates=office.map_coordinates,
+            operating_hours=office.operating_hours,
+            public_description=office.public_description
+        )
 
 
 @router.delete("/offices/{officeId}", status_code=204)
