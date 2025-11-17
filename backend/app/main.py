@@ -22,6 +22,8 @@ from .routers import delinquency as delinquency_router
 from .routers import reschedule as reschedule_router
 from .routers import reports as reports_router
 from .routers import webhooks as webhooks_router
+from .routers import public_bicycles as public_bicycles_router
+from .routers import bicycle_applications as bicycle_applications_router
 from loguru import logger
 from .auth import router as auth_router
 from .rbac import get_current_user
@@ -103,6 +105,8 @@ def create_app() -> FastAPI:
     app.include_router(reschedule_router.router)
     app.include_router(reports_router.router)
     app.include_router(webhooks_router.router)
+    app.include_router(public_bicycles_router.router)
+    app.include_router(bicycle_applications_router.router)
     app.include_router(auth_router)
     return app
 
