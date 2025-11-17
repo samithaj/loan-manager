@@ -17,7 +17,11 @@ db:
 	# Ensure DATABASE_URL is set, e.g., export DATABASE_URL=postgresql://localhost:5432/loan_manager
 	@[ -n "$$DATABASE_URL" ] || (echo "DATABASE_URL is not set" && exit 1)
 	psql "$$DATABASE_URL" -f database/migrations/0001_init.sql
+	psql "$$DATABASE_URL" -f database/migrations/0002_idempotency.sql
+	psql "$$DATABASE_URL" -f database/migrations/0003_webhooks.sql
+	psql "$$DATABASE_URL" -f database/migrations/0004_bicycle_hire_purchase.sql
 	psql "$$DATABASE_URL" -f database/seed.sql
+	psql "$$DATABASE_URL" -f database/seed_bicycle_system.sql
 
 typegen:
 	cd frontend && npm run typegen
