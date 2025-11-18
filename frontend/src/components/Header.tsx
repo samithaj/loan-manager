@@ -46,11 +46,10 @@ export default function Header() {
           {me && (
             <nav className="flex items-center gap-3 text-blue-400">
               <Link href="/reference">Reference data</Link>
-              <Link href="/reference/offices">Offices</Link>
-              <Link href="/reference/staff">Staff</Link>
-              <Link href="/reference/holidays">Holidays</Link>
               <Link href="/loan-products">Loan products</Link>
               <Link href="/clients">Clients</Link>
+              <Link href="/inventory">Inventory</Link>
+              <Link href="/applications">Applications</Link>
             </nav>
           )}
         </div>
