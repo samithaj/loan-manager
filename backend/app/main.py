@@ -26,6 +26,7 @@ from .routers import public_bicycles as public_bicycles_router
 from .routers import bicycle_applications as bicycle_applications_router
 from .routers import bicycles as bicycles_router
 from .routers import hr_leave as hr_leave_router
+from .routers import hr_attendance as hr_attendance_router
 from loguru import logger
 from .auth import router as auth_router
 from .rbac import get_current_user
@@ -113,6 +114,7 @@ def create_app() -> FastAPI:
     app.include_router(bicycle_applications_router.router)
     app.include_router(bicycles_router.router)
     app.include_router(hr_leave_router.router)
+    app.include_router(hr_attendance_router.router)
     app.include_router(auth_router)
 
     # Mount static files for uploaded images
