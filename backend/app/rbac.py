@@ -80,6 +80,7 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
         "reports:view",
         # HR permissions
         "bonuses:read",
+        "bonuses:write",
         "bonuses:approve",
     ],
     ROLE_CUSTOMER_SERVICE: [
