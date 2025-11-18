@@ -20,6 +20,7 @@ db:
 	psql "$$DATABASE_URL" -f database/migrations/0002_idempotency.sql
 	psql "$$DATABASE_URL" -f database/migrations/0003_webhooks.sql
 	psql "$$DATABASE_URL" -f database/migrations/0004_bicycle_hire_purchase.sql
+	psql "$$DATABASE_URL" -f database/migrations/0005_hr_module.sql
 	psql "$$DATABASE_URL" -f database/seed.sql
 	psql "$$DATABASE_URL" -f database/seed_bicycle_system.sql
 
