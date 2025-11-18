@@ -1,0 +1,11 @@
+# Bike Lifecycle Materialized View Refresh
+# Add this to your crontab with: crontab -e
+#
+# Refresh materialized views daily at 2:00 AM
+0 2 * * * cd /opt/loan-manager && /usr/bin/python3 scripts/refresh_materialized_views.py --all >> /var/log/bike-lifecycle-refresh.log 2>&1
+
+# Alternative: Refresh every 6 hours
+# 0 */6 * * * cd /opt/loan-manager && /usr/bin/python3 scripts/refresh_materialized_views.py --all >> /var/log/bike-lifecycle-refresh.log 2>&1
+
+# Alternative: Refresh only on weekday mornings at 6:00 AM
+# 0 6 * * 1-5 cd /opt/loan-manager && /usr/bin/python3 scripts/refresh_materialized_views.py --all >> /var/log/bike-lifecycle-refresh.log 2>&1

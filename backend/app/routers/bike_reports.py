@@ -391,3 +391,199 @@ async def get_branch_stock_summary(
             total_bikes=total_bikes,
             total_value=total_value
         )
+
+
+# ============================================================================
+# Export Endpoints
+# ============================================================================
+
+from fastapi.responses import StreamingResponse
+from ..services.export_service import ExcelExporter, PDFExporter
+
+
+@router.get("/acquisition-ledger/export")
+async def export_acquisition_ledger(
+    company_id: Optional[str] = Query(None, description="Filter by company"),
+    branch_id: Optional[str] = Query(None, description="Filter by branch"),
+    start_date: Optional[date] = Query(None, description="Start date"),
+    end_date: Optional[date] = Query(None, description="End date"),
+    user: dict = Depends(get_current_user)
+) -> StreamingResponse:
+    """
+    Export acquisition ledger to Excel format (November notebook).
+
+    Returns Excel file with bike procurement records.
+    """
+    async with SessionLocal() as db:
+        # Build query
+        query = select(Bicycle).where(
+            Bicycle.business_model.in_(["SECOND_HAND_SALE", "HIRE_PURCHASE"])
+        )
+
+        if company_id:
+            query = query.where(Bicycle.company_id == company_id)
+
+        if branch_id:
+            query = query.where(Bicycle.current_branch_id == branch_id)
+
+        if start_date:
+            query = query.where(Bicycle.procurement_date >= start_date)
+
+        if end_date:
+            query = query.where(Bicycle.procurement_date <= end_date)
+
+        query = query.order_by(Bicycle.procurement_date.desc())
+
+        result = await db.execute(query)
+        bikes = result.scalars().all()
+
+        # Convert to dict
+        bikes_data = []
+        for bike in bikes:
+            bikes_data.append({
+                "current_stock_number": bike.current_stock_number,
+                "procurement_date": bike.procurement_date.isoformat() if bike.procurement_date else None,
+                "company_id": bike.company_id,
+                "current_branch_id": bike.current_branch_id,
+                "brand": bike.brand,
+                "model": bike.model,
+                "year": bike.year,
+                "base_purchase_price": float(bike.base_purchase_price) if bike.base_purchase_price else None,
+                "supplier_name": bike.supplier_name,
+                "procured_by": bike.procured_by,
+                "procurement_notes": bike.procurement_notes
+            })
+
+        # Generate Excel
+        filters = {
+            "company_id": company_id,
+            "branch_id": branch_id,
+            "start_date": start_date.isoformat() if start_date else None,
+            "end_date": end_date.isoformat() if end_date else None
+        }
+
+        excel_file = ExcelExporter.export_acquisition_ledger(bikes_data, filters)
+
+        # Return as streaming response
+        filename = f"acquisition_ledger_{date.today().isoformat()}.xlsx"
+
+        return StreamingResponse(
+            excel_file,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+
+
+@router.get("/cost-summary/export")
+async def export_cost_summary(
+    company_id: Optional[str] = Query(None, description="Filter by company"),
+    branch_id: Optional[str] = Query(None, description="Filter by branch"),
+    status: Optional[str] = Query(None, description="Filter by status"),
+    user: dict = Depends(get_current_user)
+) -> StreamingResponse:
+    """
+    Export cost summary to Excel format (summery.xlsx replica).
+
+    Returns Excel file with bike cost breakdown and P/L analysis.
+    """
+    async with SessionLocal() as db:
+        # Build query
+        query = select(Bicycle).where(
+            Bicycle.business_model.in_(["SECOND_HAND_SALE", "HIRE_PURCHASE"])
+        )
+
+        if company_id:
+            query = query.where(Bicycle.company_id == company_id)
+
+        if branch_id:
+            query = query.where(Bicycle.current_branch_id == branch_id)
+
+        if status:
+            query = query.where(Bicycle.status == status)
+
+        result = await db.execute(query)
+        bikes = result.scalars().all()
+
+        # Convert to dict with cost details
+        bikes_data = []
+        for bike in bikes:
+            bikes_data.append({
+                "current_stock_number": bike.current_stock_number,
+                "brand": bike.brand,
+                "model": bike.model,
+                "year": bike.year,
+                "company_id": bike.company_id,
+                "current_branch_id": bike.current_branch_id,
+                "status": bike.status,
+                "base_purchase_price": float(bike.base_purchase_price) if bike.base_purchase_price else 0,
+                "total_repair_cost": float(bike.total_repair_cost) if bike.total_repair_cost else 0,
+                "total_branch_expenses": float(bike.total_branch_expenses) if bike.total_branch_expenses else 0,
+                "selling_price": float(bike.selling_price) if bike.selling_price else None,
+                "profit_or_loss": float(bike.profit_or_loss) if bike.profit_or_loss else None
+            })
+
+        # Generate Excel
+        filters = {
+            "company_id": company_id,
+            "branch_id": branch_id,
+            "status": status
+        }
+
+        excel_file = ExcelExporter.export_cost_summary(bikes_data, filters)
+
+        # Return as streaming response
+        filename = f"cost_summary_{date.today().isoformat()}.xlsx"
+
+        return StreamingResponse(
+            excel_file,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+
+
+@router.get("/commissions/export")
+async def export_commissions_pdf(
+    branch_id: Optional[str] = Query(None, description="Filter by branch"),
+    start_date: Optional[date] = Query(None, description="Start date"),
+    end_date: Optional[date] = Query(None, description="End date"),
+    user: dict = Depends(get_current_user)
+) -> StreamingResponse:
+    """
+    Export commission report to PDF format.
+
+    Returns PDF file with commission breakdown.
+    """
+    async with SessionLocal() as db:
+        # Get commission data
+        commission_service = CommissionService()
+
+        if branch_id:
+            result = await commission_service.get_branch_commission_report(
+                db,
+                branch_id,
+                start_date,
+                end_date
+            )
+            commissions_data = result.get("commissions", [])
+        else:
+            # Get all commissions (would need a new method or modify existing)
+            # For now, return empty or error
+            commissions_data = []
+
+        # Generate PDF
+        filters = {
+            "branch_id": branch_id,
+            "start_date": start_date.isoformat() if start_date else None,
+            "end_date": end_date.isoformat() if end_date else None
+        }
+
+        pdf_file = PDFExporter.export_commission_report(commissions_data, filters)
+
+        # Return as streaming response
+        filename = f"commissions_{date.today().isoformat()}.pdf"
+
+        return StreamingResponse(
+            pdf_file,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
