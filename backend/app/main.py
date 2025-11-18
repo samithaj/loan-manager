@@ -22,9 +22,19 @@ from .routers import delinquency as delinquency_router
 from .routers import reschedule as reschedule_router
 from .routers import reports as reports_router
 from .routers import webhooks as webhooks_router
+from .routers import public_bicycles as public_bicycles_router
+from .routers import bicycle_applications as bicycle_applications_router
+from .routers import bicycles as bicycles_router
+from .routers import hr_leave as hr_leave_router
+from .routers import hr_attendance as hr_attendance_router
+from .routers import hr_bonus as hr_bonus_router
+from .routers import workshop_parts as workshop_parts_router
+from .routers import workshop_jobs as workshop_jobs_router
 from loguru import logger
 from .auth import router as auth_router
 from .rbac import get_current_user
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 
 
 security = HTTPBasic()
@@ -103,7 +113,21 @@ def create_app() -> FastAPI:
     app.include_router(reschedule_router.router)
     app.include_router(reports_router.router)
     app.include_router(webhooks_router.router)
+    app.include_router(public_bicycles_router.router)
+    app.include_router(bicycle_applications_router.router)
+    app.include_router(bicycles_router.router)
+    app.include_router(hr_leave_router.router)
+    app.include_router(hr_attendance_router.router)
+    app.include_router(hr_bonus_router.router)
+    app.include_router(workshop_parts_router.router)
+    app.include_router(workshop_jobs_router.router)
     app.include_router(auth_router)
+
+    # Mount static files for uploaded images
+    uploads_path = Path("uploads")
+    uploads_path.mkdir(parents=True, exist_ok=True)
+    app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
     return app
 
 

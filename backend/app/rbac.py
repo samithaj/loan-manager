@@ -3,9 +3,12 @@ from __future__ import annotations
 from fastapi import Depends, HTTPException, Request, status
 from jose import jwt, JWTError
 from typing import Any
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from .auth import PUBLIC_PEM
 from .config import get_settings
+from .db import get_db
+from .models.user import User
 
 
 def _bearer(auth_header: str | None) -> str | None:
@@ -15,6 +18,79 @@ def _bearer(auth_header: str | None) -> str | None:
     if len(parts) == 2 and parts[0].lower() == "bearer":
         return parts[1]
     return None
+
+
+# Role constants
+ROLE_ADMIN = "admin"
+ROLE_BRANCH_MANAGER = "branch_manager"
+ROLE_SALES_AGENT = "sales_agent"
+ROLE_INVENTORY_MANAGER = "inventory_manager"
+ROLE_FINANCE_OFFICER = "finance_officer"
+ROLE_CUSTOMER_SERVICE = "customer_service"
+ROLE_AUDITOR = "auditor"
+
+# Role permissions mapping
+ROLE_PERMISSIONS: dict[str, list[str]] = {
+    ROLE_ADMIN: ["*"],  # Admin has all permissions
+    ROLE_BRANCH_MANAGER: [
+        "bicycles:read",
+        "bicycles:write",
+        "bicycles:delete",
+        "applications:read",
+        "applications:write",
+        "applications:approve",
+        "loans:read",
+        "loans:write",
+        "clients:read",
+        "clients:write",
+        "reports:view",
+        # HR permissions
+        "leaves:read",
+        "leaves:approve",
+        "attendance:read",
+        "attendance:write",
+        "bonuses:read",
+        "bonuses:approve",
+    ],
+    ROLE_SALES_AGENT: [
+        "applications:read",
+        "applications:write",
+        "applications:approve",
+        "clients:read",
+        "clients:write",
+        "loans:read",
+        "loans:write",
+        "bicycles:read",
+        # HR permissions
+        "attendance:read",
+    ],
+    ROLE_INVENTORY_MANAGER: [
+        "bicycles:read",
+        "bicycles:write",
+        "bicycles:delete",
+        "documents:read",
+        "documents:write",
+    ],
+    ROLE_FINANCE_OFFICER: [
+        "loans:read",
+        "loans:write",
+        "loans:approve",
+        "applications:read",
+        "clients:read",
+        "reports:view",
+        # HR permissions
+        "bonuses:read",
+        "bonuses:write",
+        "bonuses:approve",
+    ],
+    ROLE_CUSTOMER_SERVICE: [
+        "applications:read",
+        "applications:write",
+        "clients:read",
+        "clients:write",
+    ],
+    ROLE_AUDITOR: ["*.read"],  # Read-only access to all resources
+}
 
 
 async def get_current_user(request: Request) -> dict[str, Any]:
@@ -36,8 +112,9 @@ async def get_current_user(request: Request) -> dict[str, Any]:
         "username": payload.get("uname") or payload.get("sub"),
         "roles": list(payload.get("roles", [])),
         "sub": payload.get("sub"),
+        "metadata": payload.get("metadata", {}),
     }
-    request.state.principal = {"username": user["username"], "roles": user["roles"]}
+    request.state.principal = {"username": user["username"], "roles": user["roles"], "metadata": user.get("metadata", {})}
     return user
 
 
@@ -50,5 +127,97 @@ def require_roles(*needed: str):
         return user
 
     return _dep
+
+
+def require_permission(permission: str):
+    """
+    Dependency to check if user has a specific permission
+
+    Args:
+        permission: Permission string (e.g., "bicycles:read", "applications:approve")
+
+    Returns:
+        User dict if authorized
+
+    Raises:
+        HTTPException: If user doesn't have permission
+    """
+
+    async def _dep(user=Depends(get_current_user)):
+        user_roles = user.get("roles", [])
+
+        # Admin always has access
+        if ROLE_ADMIN in user_roles:
+            return user
+
+        # Collect all permissions from user's roles
+        user_permissions: set[str] = set()
+        for role in user_roles:
+            role_perms = ROLE_PERMISSIONS.get(role, [])
+            user_permissions.update(role_perms)
+
+        # Check for exact permission match
+        if permission in user_permissions:
+            return user
+
+        # Check for wildcard permissions
+        # Example: "*.read" matches "bicycles:read", "applications:read", etc.
+        permission_parts = permission.split(":")
+        if len(permission_parts) == 2:
+            resource, action = permission_parts
+
+            # Check for "resource:*" wildcard
+            if f"{resource}:*" in user_permissions:
+                return user
+
+            # Check for "*.action" wildcard
+            if f"*.{action}" in user_permissions:
+                return user
+
+        # Check for full wildcard
+        if "*" in user_permissions:
+            return user
+
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Permission denied: {permission} required",
+        )
+
+    return _dep
+
+
+async def require_branch_access(branch_id: str, user: dict[str, Any], db: AsyncSession) -> bool:
+    """
+    Check if user has access to a specific branch
+
+    Args:
+        branch_id: ID of the branch to check access for
+        user: User dict from get_current_user
+        db: Database session
+
+    Returns:
+        True if user has access
+
+    Raises:
+        HTTPException: If user doesn't have access to the branch
+    """
+    user_roles = user.get("roles", [])
+
+    # Admin always has access
+    if ROLE_ADMIN in user_roles:
+        return True
+
+    # Branch managers only have access to their assigned branch
+    if ROLE_BRANCH_MANAGER in user_roles:
+        user_branch_id = user.get("metadata", {}).get("branch_id")
+        if user_branch_id == branch_id:
+            return True
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Access denied: You can only access branch {user_branch_id}",
+        )
+
+    # Other roles have access to all branches
+    return True
 
 
