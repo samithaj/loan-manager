@@ -16,6 +16,9 @@ if TYPE_CHECKING:
     from .bicycle_expense import BicycleBranchExpense
     from .bicycle_sale import BicycleSale
     from .reference import Staff, Office
+else:
+    # Import bicycle_sale at runtime for foreign_keys reference
+    from . import bicycle_sale
 
 
 class BicycleCondition(str, Enum):
@@ -145,7 +148,10 @@ class Bicycle(Base):
         "BicycleBranchExpense", back_populates="bicycle", cascade="all, delete-orphan"
     )
     sale: Mapped[Optional["BicycleSale"]] = relationship(
-        "BicycleSale", back_populates="bicycle", uselist=False
+        "BicycleSale",
+        back_populates="bicycle",
+        foreign_keys="BicycleSale.bicycle_id",
+        uselist=False
     )
     buyer_employee: Mapped[Optional["Staff"]] = relationship(
         "Staff", foreign_keys=[buyer_employee_id]

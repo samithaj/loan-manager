@@ -30,7 +30,7 @@ from .hr_leave import (
     LeaveStatus
 )
 from .hr_attendance import (
-    AttendanceRecord, AttendanceStatus, AttendanceIssue
+    AttendanceRecord, AttendanceStatus
 )
 from .hr_bonus import (
     SalesTarget, PerformanceMetric, BonusRule, BonusTier,
@@ -39,11 +39,11 @@ from .hr_bonus import (
 
 # Workshop models
 from .workshop_part import (
-    PartCategory, PartSupplier, PartStockBatch, PartStockMovement,
-    MovementType
+    PartCategory, PartStockBatch, PartStockMovement,
+    StockMovementType
 )
 from .workshop_markup import (
-    MarkupRule, MarkupTarget, MarkupType
+    MarkupRule, MarkupTargetType, MarkupType
 )
 from .workshop_job import (
     RepairJob, RepairJobPart, RepairJobLabour, RepairJobOverhead,
@@ -51,7 +51,7 @@ from .workshop_job import (
 )
 
 # Utility models
-from .idempotency import IdempotencyKey
+from .idempotency import IdempotencyRecord
 
 __all__ = [
     # Reference
@@ -86,7 +86,6 @@ __all__ = [
     "LeaveStatus",
     "AttendanceRecord",
     "AttendanceStatus",
-    "AttendanceIssue",
     "SalesTarget",
     "PerformanceMetric",
     "BonusRule",
@@ -97,12 +96,11 @@ __all__ = [
     "BonusPaymentStatus",
     # Workshop
     "PartCategory",
-    "PartSupplier",
     "PartStockBatch",
     "PartStockMovement",
-    "MovementType",
+    "StockMovementType",
     "MarkupRule",
-    "MarkupTarget",
+    "MarkupTargetType",
     "MarkupType",
     "RepairJob",
     "RepairJobPart",
@@ -111,5 +109,5 @@ __all__ = [
     "RepairJobType",
     "RepairJobStatus",
     # Utility
-    "IdempotencyKey",
+    "IdempotencyRecord",
 ]

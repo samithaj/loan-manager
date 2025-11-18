@@ -2,8 +2,8 @@
 .ONESHELL:
 
 BACK_HOST=localhost
-BACK_PORT=8010
-FRONT_PORT=3010
+BACK_PORT=8020
+FRONT_PORT=3020
 DB_URL=postgresql+asyncpg://postgres@127.0.0.1:5432/loan_manager
 # Use the uv-managed environment that `uv pip` installed to
 PYTHON?=/Users/sam/Documents/.venv/bin/python
