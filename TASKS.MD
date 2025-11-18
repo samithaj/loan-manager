@@ -1,3 +1,7 @@
+## Current Status
+
+- Sprint 3 — Loan products CRUD: Completed ✅
+- Sprint 4 — Loans lifecycle (application → approval → disbursement): In progress ✅ (backend endpoints, UI hooks; product dropdown wired). Next: audit log entries and list/pagination.
 
 
 # Sprint 0 — Foundations (“living contract”, scaffolding)
@@ -103,12 +107,25 @@
 
 * **Backend**
 
-  * `/loans` create; `/loans/{id}` get/put (PENDING only).
-  * Commands via `/loans/{id}?command=approve|disburse|close` with `Idempotency-Key`.
-  * Audit log entries.
+  * [x] `/loans` create; `/loans/{id}` get/put (PENDING only).
+  * [x] Commands via `/loans/{id}?command=approve|disburse|close` with `Idempotency-Key`.
+  * [x] Audit log entries: record user, command, timestamp, correlationId; `GET /v1/loans/{id}/audit`.
+  * [x] `GET /v1/loans` list with filters (`clientId`, `status`) + sort.
 * **Frontend**
 
-  * Loan workspace: header, timeline, action drawer for approve/disburse.
+  * [x] Loan workspace pages: `/loans` (create form with Product dropdown sourced from Loan Products) and `/loans/{id}` with approve/disburse/close actions.
+  * [x] Client page quick actions to approve/disburse by Loan ID.
+  * [ ] Timeline/audit stream on loan details (pending backend audit log).
+
+### TODO (complete Sprint 4)
+
+- [ ] API: `GET /v1/loans` should return pagination metadata `{items, page, pageSize, total}` (currently returns array only)
+- [ ] API: Persist idempotency keys for commands (24h window) to guarantee dedupe (basic persistence added; add TTL cleanup + scope uniqueness constraints)
+- [ ] API: Add idempotency support to `POST /v1/loans` (create) and `PUT /v1/loans/{id}` (update) per contract
+- [ ] API: `GET /v1/clients/{clientId}/accounts` (list loans for client) per spec
+- [ ] UI: Loan details timeline consumes audit log; include correlationId and actor (basic list added; refine styling and auto-refresh)
+- [ ] Security: RBAC checks per action (scoped permissions like `loan.approve`, `loan.disburse`, `loan.close`)
+- [ ] DX: Contract sync (`spec-sync`) for new endpoints; regenerate FE types
 * **Best practices**
 
   * Make POST commands idempotent using an **Idempotency-Key** header (client UUIDs). This allows safe retries and prevents double-approve/disburse. ([Stripe Docs][9], [IETF Datatracker][10])
@@ -123,6 +140,15 @@
 
   * `/loans/{id}?command=repayment|prepay|foreclosure|writeoff|waiveInterest|recovery` → returns `{transaction, loan}` with `receiptNumber`.
   * `/loans/{id}/transactions/template?command=…`.
+
+### TODO
+
+- [ ] API: Implement commands above with validation and idempotency; persist to `loan_transactions`
+- [ ] API: Receipt numbering service (monotonic per day or per loan); include `receiptNumber` in response
+- [ ] API: `GET /v1/loans/{loanId}/transactions/template?command=…`
+- [ ] UI: Payment form (amount/date/notes) + success screen with Print Receipt (react-to-print)
+- [ ] UI: Receipt component (stable layout) and printer-friendly styles
+- [ ] Tests: Happy path + idempotent retry returns same transaction
 * **Frontend**
 
   * Payment form + “Print receipt” using react-to-print component.
@@ -144,6 +170,12 @@
 
   * Charge management UI; “Pay charge” flow & receipt.
 * **Best practices**
+### TODO
+
+- [ ] API: CRUD for charges + `POST /loans/{id}/charges/{chargeId}/pay` with idempotency
+- [ ] UI: Charges tab on loan details; add/edit/delete/pay
+- [ ] Integrate charge payment with receipt component from Sprint 5
+
 
   * Treat charge payment as a first-class transaction with the same idempotent POST discipline. ([Stripe Docs][12])
 
@@ -158,6 +190,11 @@
   * `/loans/{id}/collaterals` CRUD.
   * `/vehicle-inventory` CRUD; `:allocate`/`:release`.
   * On disbursement, if `vehicleInventoryId` present → atomically `IN_STOCK → SOLD`, else proceed.
+### TODO
+
+- [ ] API: Accept optional `vehicleInventoryId` on disburse command and atomically allocate/sell inventory
+- [ ] API: Allocate/Release endpoints for inventory; enforce 409 on races
+- [ ] UI: Inventory list + allocate to loan; show link on loan details
   * Use `409 Conflict` on allocation races.
 * **Frontend**
 
@@ -179,6 +216,9 @@
 
   * Drag-and-drop uploader; preview common types.
 * **Best practices**
+### TODO
+
+- [ ] API/UI: `/loans/{loanId}/documents` list/upload; `/documents/{documentId}/content` download
 
   * Follow OWASP File Upload guidance: strict allowlist, size limits, AV scanning (e.g., ClamAV), never trust client MIME.
 
@@ -296,6 +336,27 @@
 ---
 
 ## “Done” checklist we’ll reuse every sprint
+
+---
+
+## Use case coverage (from `USE_CASES.MD`)
+
+| Use Case | Sprint | Status |
+| --- | --- | --- |
+| Authentication | 0 | ✅ |
+| Clients CRUD | 2 | ✅ |
+| Loan Products | 3 | ✅ |
+| Loans Lifecycle | 4 | In progress (backend + UI) |
+| Transactions & Receipts | 5 | Planned |
+| Charges | 6 | Planned |
+| Collateral & Vehicle Inventory | 7 | Planned |
+| Documents | 8 | Planned |
+| Bulk Upload | 9 | Planned |
+| Delinquency | 10 | Planned |
+| Reschedule (Preview → Commit) | 11 | Planned |
+| Reports | 12 | Planned |
+| Webhooks | 13 | Planned |
+| Admin & Reference | 1/0 | ✅ |
 
 * Contract tests pass against the OpenAPI (FE client compiles + happy-path calls succeed). ([Speakeasy][19])
 * Unit + integration tests (pytest + FastAPI TestClient) green. ([FastAPI][6])

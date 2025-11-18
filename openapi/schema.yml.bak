@@ -1,0 +1,374 @@
+openapi: 3.1.0
+info:
+  title: Loan Manager API
+  version: 1.0.0
+  description: Single source of truth for the Loan Manager API. Auth via JWT cookies; FE consumes this spec for types and a thin client.
+servers:
+  - url: http://localhost:8000/v1
+security:
+  # Either cookie-based JWT or Bearer token
+  - cookieAuth: []
+  - bearerAuth: []
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: access_token
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    User:
+      type: object
+      required: [id, username, roles]
+      properties:
+        id: { type: string }
+        username: { type: string }
+        roles: { type: array, items: { type: string } }
+    UserCreate:
+      type: object
+      required: [username, password]
+      properties:
+        username: { type: string }
+        password: { type: string, writeOnly: true }
+        roles: { type: array, items: { type: string }, default: [user] }
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: string }
+        message: { type: string }
+        correlationId: { type: string }
+    Client:
+      type: object
+      required: [id, displayName]
+      properties:
+        id: { type: string }
+        displayName: { type: string }
+        mobile: { type: string, nullable: true }
+        nationalId: { type: string, nullable: true }
+        address: { type: string, nullable: true }
+    ClientCreate:
+      type: object
+      required: [displayName]
+      properties:
+        id: { type: string }
+        displayName: { type: string }
+        mobile: { type: string, nullable: true }
+        nationalId: { type: string, nullable: true }
+        address: { type: string, nullable: true }
+    # Reference data
+    Office:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: string }
+        name: { type: string }
+    Staff:
+      type: object
+      required: [id, name, role]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        role: { type: string }
+    Holiday:
+      type: object
+      required: [id, name, date]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        date: { type: string, format: date }
+    LoanProduct:
+      type: object
+      required: [id, name, interestRate, termMonths, repaymentFrequency]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        interestRate: { type: number, minimum: 0, maximum: 100 }
+        termMonths: { type: integer, minimum: 1 }
+        repaymentFrequency:
+          type: string
+          enum: [DAILY, WEEKLY, BIWEEKLY, MONTHLY]
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        '200': { description: OK }
+  /me:
+    get:
+      summary: Get current user profile
+      responses:
+        '200':
+          description: Current user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  username: { type: string }
+                  roles: { type: array, items: { type: string } }
+        '401': { description: Unauthorized, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /users:
+    post:
+      summary: Create a user (bootstrap)
+      description: "Creates an application user with roles. During bootstrap, this may be open when no users exist."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UserCreate' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '409': { description: Conflict (username exists), content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /clients:
+    get:
+      summary: List clients
+      parameters:
+        - { name: q, in: query, schema: { type: string } }
+      responses:
+        '200':
+          description: Clients
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Client' }
+    post:
+      summary: Create client
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ClientCreate' }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Client' } } } }
+
+  /clients/{clientId}:
+    get:
+      summary: Get client
+      parameters: [ { name: clientId, in: path, required: true, schema: { type: string } } ]
+      responses:
+        '200': { description: Client, content: { application/json: { schema: { $ref: '#/components/schemas/Client' } } } }
+    put:
+      summary: Update client
+      parameters: [ { name: clientId, in: path, required: true, schema: { type: string } } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ClientCreate' }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Client' } } } }
+    delete:
+      summary: Delete client
+      parameters: [ { name: clientId, in: path, required: true, schema: { type: string } } ]
+      responses:
+        '204': { description: Deleted }
+
+  # Org & reference data
+  /offices:
+    get:
+      summary: List offices
+      responses:
+        '200':
+          description: Offices
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Office' }
+    post:
+      summary: Create office
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Office' }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Office' } } } }
+
+  /offices/{officeId}:
+    put:
+      summary: Update office
+      parameters: [ { name: officeId, in: path, required: true, schema: { type: string } } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Office' }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Office' } } } }
+    delete:
+      summary: Delete office
+      parameters: [ { name: officeId, in: path, required: true, schema: { type: string } } ]
+      responses:
+        '204': { description: Deleted }
+
+  /staff:
+    get:
+      summary: List staff
+      responses:
+        '200':
+          description: Staff
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Staff' }
+    post:
+      summary: Create staff
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Staff' }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Staff' } } } }
+
+  /staff/{staffId}:
+    put:
+      summary: Update staff
+      parameters: [ { name: staffId, in: path, required: true, schema: { type: string } } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Staff' }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Staff' } } } }
+    delete:
+      summary: Delete staff
+      parameters: [ { name: staffId, in: path, required: true, schema: { type: string } } ]
+      responses:
+        '204': { description: Deleted }
+
+  /holidays:
+    get:
+      summary: List holidays
+      responses:
+        '200':
+          description: Holidays
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Holiday' }
+    post:
+      summary: Create holiday
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Holiday' }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Holiday' } } } }
+
+  /holidays/{holidayId}:
+    put:
+      summary: Update holiday
+      parameters: [ { name: holidayId, in: path, required: true, schema: { type: string } } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Holiday' }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Holiday' } } } }
+    delete:
+      summary: Delete holiday
+      parameters: [ { name: holidayId, in: path, required: true, schema: { type: string } } ]
+      responses:
+        '204': { description: Deleted }
+
+  /loan-products:
+    get:
+      summary: List loan products
+      responses:
+        '200':
+          description: Loan products
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/LoanProduct' }
+    post:
+      summary: Create loan product
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoanProduct' }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/LoanProduct' } } } }
+
+  # Auth (JWT cookies)
+  /auth/login:
+    post:
+      summary: Login and set JWT cookies
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username: { type: string }
+                password: { type: string }
+      responses:
+        '200':
+          description: Logged in; cookies set
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+        '401': { description: Unauthorized, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /auth/logout:
+    post:
+      summary: Logout and clear cookies
+      responses:
+        '200':
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+
+  /.well-known/jwks.json:
+    get:
+      summary: JWKS for JWT verification
+      responses:
+        '200':
+          description: JSON Web Key Set
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  keys:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        kty: { type: string }
+                        kid: { type: string }
+                        use: { type: string }
+                        alg: { type: string }
+                        n: { type: string }
+                        e: { type: string }
+
+

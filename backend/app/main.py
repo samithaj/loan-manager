@@ -13,6 +13,7 @@ from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pydantic import BaseModel
 import secrets  # noqa: F401
 from .routers import loan_products as loan_products_router
+from .routers import loans as loans_router
 from loguru import logger
 from .auth import router as auth_router
 from .rbac import get_current_user
@@ -86,6 +87,7 @@ def create_app() -> FastAPI:
     app.include_router(clients_router.router)
     app.include_router(loan_products_router.router)
     app.include_router(auth_router)
+    app.include_router(loans_router.router)
     return app
 
 

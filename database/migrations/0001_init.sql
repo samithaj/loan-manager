@@ -135,6 +135,26 @@ create index if not exists idx_clients_display_name on clients (display_name);
 create index if not exists idx_loans_client on loans (client_id);
 create index if not exists idx_txn_loan on loan_transactions (loan_id);
 
+-- Loan audit
+create table if not exists loan_audit (
+  id text primary key,
+  loan_id text not null references loans(id),
+  actor text not null,
+  action text not null,
+  at timestamptz not null default now(),
+  correlation_id text,
+  meta jsonb
+);
+
+-- Idempotency keys (24h TTL managed externally)
+create table if not exists idempotency_keys (
+  key text primary key,
+  scope text not null,
+  response_json jsonb not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists idx_idem_scope on idempotency_keys (scope);
+
 
 
 

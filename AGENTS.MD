@@ -124,6 +124,23 @@ black --check backend
 mypy backend
 ```
 
+### Contract checks
+
+Use the Make targets to keep the OpenAPI contract in sync with the live FastAPI app and the frontend types:
+
+```bash
+# Strict diff (fails on any differences)
+make contract-diff
+
+# Lenient diff (ignores naming/format/id noise like camelCase vs snake_case,
+# string formats like date/uuid, and required id differences)
+make contract-diff-lenient
+
+# Generate/sync the spec from the running backend
+make spec-generate   # writes openapi/schema.json
+make spec-sync       # overwrites openapi/schema.yml with live JSON (valid YAML)
+```
+
 ## PR guidelines
 
 - Provide a clear description of changes and their impact.

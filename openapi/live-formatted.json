@@ -756,65 +756,6 @@
                 }
             }
         },
-        "/v1/loans": {
-            "post": {
-                "summary": "Create Loan",
-                "operationId": "create_loan_v1_loans_post",
-                "requestBody": {
-                    "required": true,
-                    "content": {"application/json": {"schema": {"$ref": "#/components/schemas/LoanIn"}}}
-                },
-                "responses": {
-                    "201": {
-                        "description": "Successful Response",
-                        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/LoanOut"}}}
-                    },
-                    "422": {
-                        "description": "Validation Error",
-                        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/HTTPValidationError"}}}
-                    }
-                }
-            }
-        },
-        "/v1/loans/{loanId}": {
-            "get": {
-                "summary": "Get Loan",
-                "operationId": "get_loan_v1_loans__loanId__get",
-                "parameters": [
-                    {"name": "loanId", "in": "path", "required": true, "schema": {"type": "string", "title": "Loanid"}}
-                ],
-                "responses": {
-                    "200": {"description": "Successful Response", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/LoanOut"}}}},
-                    "422": {"description": "Validation Error", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/HTTPValidationError"}}}}
-                }
-            },
-            "put": {
-                "summary": "Update Loan",
-                "operationId": "update_loan_v1_loans__loanId__put",
-                "parameters": [
-                    {"name": "loanId", "in": "path", "required": true, "schema": {"type": "string", "title": "Loanid"}}
-                ],
-                "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/LoanIn"}}}},
-                "responses": {
-                    "200": {"description": "Successful Response", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/LoanOut"}}}},
-                    "422": {"description": "Validation Error", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/HTTPValidationError"}}}}
-                }
-            },
-            "post": {
-                "summary": "Loan Command",
-                "operationId": "loan_command_v1_loans__loanId__post",
-                "parameters": [
-                    {"name": "loanId", "in": "path", "required": true, "schema": {"type": "string", "title": "Loanid"}},
-                    {"name": "command", "in": "query", "required": true, "schema": {"type": "string", "enum": ["approve", "disburse", "close"], "title": "Command"}},
-                    {"name": "Idempotency-Key", "in": "header", "required": true, "schema": {"type": "string", "title": "IdempotencyKey"}}
-                ],
-                "responses": {
-                    "200": {"description": "Successful Response", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/LoanOut"}}}},
-                    "400": {"description": "Bad Request"},
-                    "409": {"description": "Conflict"}
-                }
-            }
-        },
         "/v1/auth/login": {
             "post": {
                 "tags": [
@@ -895,35 +836,6 @@
     },
     "components": {
         "schemas": {
-            "LoanIn": {
-                "type": "object",
-                "title": "LoanIn",
-                "required": ["id", "clientId", "productId", "principal", "termMonths"],
-                "properties": {
-                    "id": {"type": "string", "title": "Id"},
-                    "clientId": {"type": "string", "title": "Clientid"},
-                    "productId": {"type": "string", "title": "Productid"},
-                    "principal": {"type": "number", "title": "Principal"},
-                    "interestRate": {"anyOf": [{"type": "number"}, {"type": "null"}], "title": "Interestrate"},
-                    "termMonths": {"type": "integer", "title": "Termmonths"},
-                    "status": {"anyOf": [{"type": "string"}, {"type": "null"}], "title": "Status"}
-                }
-            },
-            "LoanOut": {
-                "type": "object",
-                "title": "LoanOut",
-                "required": ["id", "clientId", "productId", "principal", "termMonths", "status"],
-                "properties": {
-                    "id": {"type": "string", "title": "Id"},
-                    "clientId": {"type": "string", "title": "Clientid"},
-                    "productId": {"type": "string", "title": "Productid"},
-                    "principal": {"type": "number", "title": "Principal"},
-                    "interestRate": {"anyOf": [{"type": "number"}, {"type": "null"}], "title": "Interestrate"},
-                    "termMonths": {"type": "integer", "title": "Termmonths"},
-                    "status": {"type": "string", "title": "Status"},
-                    "disbursedOn": {"anyOf": [{"type": "string"}, {"type": "null"}], "title": "Disbursedon"}
-                }
-            },
             "ClientIn": {
                 "properties": {
                     "id": {
