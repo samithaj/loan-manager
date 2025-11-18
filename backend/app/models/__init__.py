@@ -26,8 +26,8 @@ from .bicycle_sale import BicycleSale, SalePaymentMethod
 
 # HR models
 from .hr_leave import (
-    LeaveType, LeaveRequest, LeaveBalance, LeaveQuota,
-    LeaveRequestStatus
+    LeaveType, LeaveApplication, LeaveBalance,
+    LeaveStatus
 )
 from .hr_attendance import (
     AttendanceRecord, AttendanceStatus, AttendanceIssue
@@ -81,10 +81,9 @@ __all__ = [
     "SalePaymentMethod",
     # HR
     "LeaveType",
-    "LeaveRequest",
+    "LeaveApplication",
     "LeaveBalance",
-    "LeaveQuota",
-    "LeaveRequestStatus",
+    "LeaveStatus",
     "AttendanceRecord",
     "AttendanceStatus",
     "AttendanceIssue",
