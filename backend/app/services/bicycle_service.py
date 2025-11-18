@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import secrets
+import json
 from datetime import datetime
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from ..models.bicycle import Bicycle, BicycleStatus
 from ..models.bicycle_application import BicycleApplication, ApplicationStatus
 from ..models.client import Client
-from ..models.loan import Loan
+from ..models.loan import Loan, Collateral
 from ..models.loan_product import LoanProduct
 from typing import Optional
 
@@ -204,6 +205,52 @@ async def mark_bicycle_sold(session: AsyncSession, bicycle_id: str, loan_id: str
     return bicycle
 
 
+async def create_collateral_for_bicycle(
+    session: AsyncSession,
+    loan: Loan,
+    bicycle: Bicycle
+) -> Collateral:
+    """
+    Create a collateral record linking bicycle to loan.
+
+    Args:
+        session: Database session
+        loan: Loan instance
+        bicycle: Bicycle instance
+
+    Returns:
+        Created Collateral instance
+    """
+    # Generate collateral ID
+    collateral_id = f"COL-{datetime.now().strftime('%Y%m%d%H%M%S')}-{secrets.token_hex(3).upper()}"
+
+    # Create collateral details with bicycle information
+    details = json.dumps({
+        "bicycle_id": bicycle.id,
+        "title": bicycle.title,
+        "brand": bicycle.brand,
+        "model": bicycle.model,
+        "year": bicycle.year,
+        "condition": bicycle.condition,
+        "license_plate": bicycle.license_plate,
+        "frame_number": bicycle.frame_number,
+        "engine_number": bicycle.engine_number,
+    })
+
+    # Create collateral
+    collateral = Collateral(
+        id=collateral_id,
+        loan_id=loan.id,
+        type="VEHICLE",  # Using VEHICLE type for bicycles/motorcycles
+        value=float(bicycle.hire_purchase_price),
+        details=details
+    )
+
+    session.add(collateral)
+    await session.flush()
+    return collateral
+
+
 async def approve_application_and_create_loan(
     session: AsyncSession,
     application: BicycleApplication,
@@ -216,9 +263,10 @@ async def approve_application_and_create_loan(
     1. Validates application can be approved
     2. Gets or creates client from application data
     3. Creates loan with calculated values
-    4. Updates application status to CONVERTED_TO_LOAN
-    5. Marks bicycle as SOLD
-    6. Links application to loan
+    4. Creates collateral linking bicycle to loan
+    5. Updates application status to CONVERTED_TO_LOAN
+    6. Marks bicycle as SOLD
+    7. Links application to loan
 
     Args:
         session: Database session
@@ -244,6 +292,9 @@ async def approve_application_and_create_loan(
 
     # Create loan
     loan = await create_loan_from_application(session, application, bicycle, client)
+
+    # Create collateral linking bicycle to loan
+    await create_collateral_for_bicycle(session, loan, bicycle)
 
     # Update application
     application.status = ApplicationStatus.CONVERTED_TO_LOAN.value

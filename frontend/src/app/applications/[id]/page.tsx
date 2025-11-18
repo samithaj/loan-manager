@@ -331,6 +331,37 @@ export default function ApplicationDetailPage({ params }: { params: { id: string
             </div>
           </div>
 
+          {/* Linked Loan */}
+          {application.loan_id && application.status === "CONVERTED_TO_LOAN" && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg shadow-md p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Linked Loan</h3>
+              <div className="space-y-3">
+                <div>
+                  <div className="text-sm text-gray-600">Loan ID</div>
+                  <div className="font-mono font-medium text-gray-900">{application.loan_id}</div>
+                </div>
+                <div className="bg-white rounded p-3 text-sm">
+                  <p className="text-gray-700 mb-2">
+                    This application has been approved and converted to a loan. The bicycle has been
+                    registered as collateral for the loan.
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <a
+                    href={`#`}
+                    className="flex-1 text-center bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      alert("Loan detail page not yet implemented. Loan ID: " + application.loan_id);
+                    }}
+                  >
+                    View Loan Details
+                  </a>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Actions */}
           {canApproveOrReject && (
             <div className="bg-white rounded-lg shadow-md p-6">
