@@ -44,6 +44,13 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
         "clients:read",
         "clients:write",
         "reports:view",
+        # HR permissions
+        "leaves:read",
+        "leaves:approve",
+        "attendance:read",
+        "attendance:write",
+        "bonuses:read",
+        "bonuses:approve",
     ],
     ROLE_SALES_AGENT: [
         "applications:read",
@@ -54,6 +61,8 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
         "loans:read",
         "loans:write",
         "bicycles:read",
+        # HR permissions
+        "attendance:read",
     ],
     ROLE_INVENTORY_MANAGER: [
         "bicycles:read",
@@ -69,6 +78,9 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
         "applications:read",
         "clients:read",
         "reports:view",
+        # HR permissions
+        "bonuses:read",
+        "bonuses:approve",
     ],
     ROLE_CUSTOMER_SERVICE: [
         "applications:read",
