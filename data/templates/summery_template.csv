@@ -1,0 +1,4 @@
+stock_number,brand,model,year,company_id,branch_id,status,purchase_price,repair_cost,branch_expenses,selling_price,sale_date,customer_name,notes
+MA/WW/ST/0001,Honda,CB 125F,2020,MA,WW,SOLD,150000,25000,5000,200000,2024-11-15,John Doe,First bike imported
+MA/HP/ST/0002,Yamaha,FZ,2019,MA,HP,IN_STOCK,140000,30000,3000,,,,"Still in stock, needs minor repairs"
+IN/BRC/ST/0003,Bajaj,Pulsar 150,2021,IN,BRC,SOLD,165000,15000,2500,190000,2024-10-20,Jane Smith,"Good condition, sold quickly"
