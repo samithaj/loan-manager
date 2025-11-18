@@ -6,7 +6,7 @@ from datetime import date, datetime
 from enum import Enum
 from typing import Optional, List
 
-from .base import Base
+from ..db import Base
 
 
 class MarkupTargetType(str, Enum):

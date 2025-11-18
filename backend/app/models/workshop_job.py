@@ -6,7 +6,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Optional
 
-from .base import Base
+from ..db import Base
 
 
 class RepairJobType(str, Enum):

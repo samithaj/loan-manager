@@ -18,6 +18,12 @@ engine: AsyncEngine = create_engine()
 SessionLocal = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
 
+async def get_db():
+    """Dependency for getting async database sessions"""
+    async with SessionLocal() as session:
+        yield session
+
+
 
 
 

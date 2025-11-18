@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 from sqlalchemy import String, Boolean, Numeric, Date, Text, ARRAY, CheckConstraint
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 from datetime import date, datetime
 from enum import Enum
 from typing import Optional, Dict, Any
 import json
 
-from .base import Base
+from ..db import Base
 
 
 class PartCategory(str, Enum):
@@ -48,7 +49,7 @@ class Part(Base):
     unit: Mapped[str] = mapped_column(String, nullable=False, server_default="pcs")
     is_universal: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
     bike_model_compatibility: Mapped[Optional[Dict[str, Any]]] = mapped_column(
-        type_=dict, nullable=True
+        JSONB, nullable=True
     )
     minimum_stock_level: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False, server_default="0")
     reorder_point: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False, server_default="0")

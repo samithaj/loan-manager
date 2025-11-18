@@ -23,7 +23,7 @@ router = APIRouter(prefix="/v1/attendance", tags=["hr-attendance"])
 
 class ClockInOut(BaseModel):
     """Clock in/out request"""
-    date: Optional[date] = Field(None, description="Date (default: today)")
+    attendance_date: Optional[date] = Field(None, description="Date (default: today)")
     location: Optional[str] = Field(None, max_length=500)
     notes: Optional[str] = Field(None, max_length=1000)
 
@@ -178,7 +178,7 @@ async def clock_in(
 
     Permissions: All authenticated users can clock in
     """
-    record_date = data.date or date.today()
+    record_date = data.attendance_date or date.today()
 
     # Prevent clocking in for future dates
     if record_date > date.today():
@@ -222,7 +222,7 @@ async def clock_out(
 
     Permissions: All authenticated users can clock out
     """
-    record_date = data.date or date.today()
+    record_date = data.attendance_date or date.today()
 
     # Get attendance record
     stmt = select(AttendanceRecord).where(

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from fastapi import FastAPI, Depends, HTTPException, status, APIRouter, Request
 from fastapi.middleware.cors import CORSMiddleware
 from .middleware import correlation_id_middleware, request_logging_middleware
@@ -77,10 +79,15 @@ def create_app() -> FastAPI:
     app.middleware("http")(correlation_id_middleware)
     app.middleware("http")(request_logging_middleware)
     install_error_handlers(app)
-    # Dev CORS for Next.js on localhost:3000
+    # Dev CORS for Next.js on localhost:3000 and localhost:3010
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+        allow_origins=[
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+            "http://localhost:3010",
+            "http://127.0.0.1:3010"
+        ],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"]

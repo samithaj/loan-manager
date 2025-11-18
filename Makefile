@@ -1,9 +1,9 @@
-.PHONY: dev backend frontend install typegen stop
+.PHONY: dev backend frontend install typegen stop kill
 .ONESHELL:
 
 BACK_HOST=localhost
-BACK_PORT=8000
-FRONT_PORT=3000
+BACK_PORT=8010
+FRONT_PORT=3010
 DB_URL=postgresql+asyncpg://postgres@127.0.0.1:5432/loan_manager
 # Use the uv-managed environment that `uv pip` installed to
 PYTHON?=/Users/sam/Documents/.venv/bin/python
@@ -22,6 +22,7 @@ db:
 	psql "$$DATABASE_URL" -f database/migrations/0004_bicycle_hire_purchase.sql
 	psql "$$DATABASE_URL" -f database/migrations/0005_hr_module.sql
 	psql "$$DATABASE_URL" -f database/migrations/0006_workshop_module.sql
+	psql "$$DATABASE_URL" -f database/migrations/0007_rename_user_metadata.sql
 	psql "$$DATABASE_URL" -f database/seed.sql
 	psql "$$DATABASE_URL" -f database/seed_bicycle_system.sql
 
@@ -48,6 +49,14 @@ stop:
 	- pkill -f "uvicorn .*app.main:app" || true
 	- pkill -f "next dev" || true
 	- lsof -ti tcp:$(BACK_PORT) | xargs kill -9 2>/dev/null || true
+
+kill:
+	@echo "Killing processes on ports $(BACK_PORT) and $(FRONT_PORT)..."
+	- lsof -ti tcp:$(BACK_PORT) | xargs kill -9 2>/dev/null || true
+	- lsof -ti tcp:$(FRONT_PORT) | xargs kill -9 2>/dev/null || true
+	- pkill -9 -f "uvicorn .*app.main:app" 2>/dev/null || true
+	- pkill -9 -f "next dev" 2>/dev/null || true
+	@echo "Done"
 
 # Start both without killing on exit; leaves processes running
 up:
