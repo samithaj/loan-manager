@@ -1,0 +1,15 @@
+# Ignore all actual data files
+raw/
+converted/
+archive/
+
+# Keep only templates
+!templates/
+!templates/*.csv
+
+# Ignore logs
+*.log
+
+# Ignore backup files
+*.bak
+*.backup

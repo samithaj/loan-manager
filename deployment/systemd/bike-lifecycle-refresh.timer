@@ -1,0 +1,16 @@
+[Unit]
+Description=Nightly refresh of bike lifecycle materialized views
+Requires=bike-lifecycle-refresh.service
+
+[Timer]
+# Run daily at 2:00 AM
+OnCalendar=*-*-* 02:00:00
+# Run 5 minutes after boot if we missed the scheduled time
+OnBootSec=5min
+# Persist timer state across reboots
+Persistent=true
+# Randomize start time by up to 10 minutes to avoid system load spikes
+RandomizedDelaySec=10min
+
+[Install]
+WantedBy=timers.target

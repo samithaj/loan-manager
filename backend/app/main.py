@@ -32,6 +32,13 @@ from .routers import hr_attendance as hr_attendance_router
 from .routers import hr_bonus as hr_bonus_router
 from .routers import workshop_parts as workshop_parts_router
 from .routers import workshop_jobs as workshop_jobs_router
+from .routers import companies as companies_router
+from .routers import bike_lifecycle as bike_lifecycle_router
+from .routers import bike_transfers as bike_transfers_router
+from .routers import bike_sales as bike_sales_router
+from .routers import bike_expenses as bike_expenses_router
+from .routers import bike_reports as bike_reports_router
+from .routers import admin as admin_router
 from loguru import logger
 from .auth import router as auth_router
 from .rbac import get_current_user
@@ -128,6 +135,13 @@ def create_app() -> FastAPI:
     app.include_router(hr_bonus_router.router)
     app.include_router(workshop_parts_router.router)
     app.include_router(workshop_jobs_router.router)
+    app.include_router(companies_router.router)
+    app.include_router(bike_lifecycle_router.router)
+    app.include_router(bike_transfers_router.router)
+    app.include_router(bike_sales_router.router)
+    app.include_router(bike_expenses_router.router)
+    app.include_router(bike_reports_router.router)
+    app.include_router(admin_router.router)
     app.include_router(auth_router)
 
     # Mount static files for uploaded images

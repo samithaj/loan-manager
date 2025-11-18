@@ -1,0 +1,17 @@
+[Unit]
+Description=Refresh Bike Lifecycle Materialized Views
+After=network.target postgresql.service
+
+[Service]
+Type=oneshot
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/loan-manager
+Environment="DATABASE_URL=postgresql+asyncpg://postgres@localhost:5432/loan_manager"
+ExecStart=/usr/bin/python3 /opt/loan-manager/scripts/refresh_materialized_views.py --all
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=bike-lifecycle-refresh
+
+[Install]
+WantedBy=multi-user.target

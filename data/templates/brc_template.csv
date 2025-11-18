@@ -1,0 +1,4 @@
+stock_number,license_plate,brand,model,job_date,description,parts_cost,labor_cost,total_cost,mechanic,job_status,notes
+MA/WW/ST/0001,XYZ-1234,Honda,CB 125F,2024-11-02,Engine oil change and brake pad replacement,3500,2000,5500,Saman,COMPLETED,Regular maintenance
+MA/HP/ST/0002,ABC-5678,Yamaha,FZ,2024-11-06,Chain replacement and tire change,8000,3000,11000,Kumara,COMPLETED,Worn out parts
+IN/BRC/ST/0003,DEF-9012,Bajaj,Pulsar 150,2024-11-12,Battery replacement,4500,1000,5500,Ravi,COMPLETED,Old battery dead

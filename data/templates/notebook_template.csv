@@ -1,0 +1,4 @@
+date,company_id,branch_id,license_plate,brand,model,year,purchase_price,supplier_name,supplier_contact,procured_by,payment_method,invoice_number,notes
+2024-11-01,MA,WW,XYZ-1234,Honda,CB 125F,2020,150000,Bike Dealer Ltd,0771234567,Kamal,CASH,INV-001,Good condition
+2024-11-05,MA,HP,ABC-5678,Yamaha,FZ,2019,140000,Second Hand Motors,0779876543,Nimal,BANK,INV-002,Minor scratches
+2024-11-10,IN,BRC,DEF-9012,Bajaj,Pulsar 150,2021,165000,Bike Exchange,0712345678,Sunil,CASH,INV-003,Excellent condition
