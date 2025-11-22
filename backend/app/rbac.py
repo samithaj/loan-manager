@@ -23,6 +23,7 @@ def _bearer(auth_header: str | None) -> str | None:
 # Role constants
 ROLE_ADMIN = "admin"
 ROLE_BRANCH_MANAGER = "branch_manager"
+ROLE_HEAD_MANAGER = "head_manager"  # Head Office Manager
 ROLE_SALES_AGENT = "sales_agent"
 ROLE_INVENTORY_MANAGER = "inventory_manager"
 ROLE_FINANCE_OFFICER = "finance_officer"
@@ -48,9 +49,24 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
         "reports:view",
         # HR permissions
         "leaves:read",
-        "leaves:approve",
+        "leaves:approve",  # Branch-level leave approval
         "attendance:read",
         "attendance:write",
+        "bonuses:read",
+        "bonuses:approve",
+    ],
+    ROLE_HEAD_MANAGER: [
+        # Head Office Manager - approves leaves requiring HO approval
+        "bicycles:read",
+        "applications:read",
+        "loans:read",
+        "clients:read",
+        "reports:view",
+        # HR permissions
+        "leaves:read",
+        "leaves:approve",  # Branch-level approval (can also approve directly)
+        "leaves:approve_ho",  # Head Office approval
+        "attendance:read",
         "bonuses:read",
         "bonuses:approve",
     ],
