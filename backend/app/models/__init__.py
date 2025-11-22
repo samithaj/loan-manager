@@ -44,6 +44,10 @@ from .hr_leave import (
     LeaveType, LeaveApplication, LeaveBalance,
     LeaveStatus
 )
+from .leave_approval import (
+    LeaveApproval, LeaveAuditLog, LeavePolicy,
+    ApprovalDecision, ApproverRole
+)
 from .hr_attendance import (
     AttendanceRecord, AttendanceStatus
 )
@@ -116,6 +120,11 @@ __all__ = [
     "LeaveApplication",
     "LeaveBalance",
     "LeaveStatus",
+    "LeaveApproval",
+    "LeaveAuditLog",
+    "LeavePolicy",
+    "ApprovalDecision",
+    "ApproverRole",
     "AttendanceRecord",
     "AttendanceStatus",
     "SalesTarget",

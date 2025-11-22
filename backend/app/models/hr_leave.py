@@ -9,10 +9,17 @@ from ..db import Base
 
 
 class LeaveStatus(str, Enum):
-    PENDING = "PENDING"
-    APPROVED = "APPROVED"
-    REJECTED = "REJECTED"
-    CANCELLED = "CANCELLED"
+    """
+    Enhanced leave status for multi-level approval workflow
+    """
+    DRAFT = "DRAFT"  # Saved but not submitted
+    PENDING = "PENDING"  # Submitted, awaiting first approval
+    APPROVED_BRANCH = "APPROVED_BRANCH"  # Approved by branch manager
+    APPROVED_HO = "APPROVED_HO"  # Approved by head office (final)
+    APPROVED = "APPROVED"  # Fully approved (backward compatible)
+    REJECTED = "REJECTED"  # Rejected
+    CANCELLED = "CANCELLED"  # Cancelled by employee
+    NEEDS_INFO = "NEEDS_INFO"  # Manager requested more information
 
 
 class LeaveType(Base):
@@ -27,6 +34,12 @@ class LeaveType(Base):
     max_consecutive_days: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     is_paid: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+
+    # Enhanced fields for multi-level approval
+    requires_ho_approval: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    max_days_per_request: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    code: Mapped[Optional[str]] = mapped_column(String(20), nullable=True, unique=True)  # ANNUAL, CASUAL, SICK, etc.
+
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
 
     def to_dict(self):
@@ -91,10 +104,20 @@ class LeaveApplication(Base):
     total_days: Mapped[float] = mapped_column(Numeric(5, 2), nullable=False)
     reason: Mapped[str] = mapped_column(Text, nullable=False)
     status: Mapped[str] = mapped_column(String, nullable=False, default=LeaveStatus.PENDING.value)
-    approver_id: Mapped[Optional[str]] = mapped_column(UUID, nullable=True)  # References users.id
+    approver_id: Mapped[Optional[str]] = mapped_column(UUID, nullable=True)  # References users.id (last approver)
     approved_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     approver_notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     document_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    # Enhanced fields
+    branch_id: Mapped[Optional[str]] = mapped_column(UUID, nullable=True)  # Employee's branch
+    branch_approver_id: Mapped[Optional[str]] = mapped_column(UUID, nullable=True)  # Branch manager who approved
+    branch_approved_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    ho_approver_id: Mapped[Optional[str]] = mapped_column(UUID, nullable=True)  # HO manager who approved
+    ho_approved_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    cancelled_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    is_half_day: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
