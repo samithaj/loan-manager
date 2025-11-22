@@ -22,6 +22,12 @@ from .loan_application_document import LoanApplicationDocument, DocumentType
 from .loan_application_decision import LoanApplicationDecision, DecisionType
 from .loan_application_audit import LoanApplicationAudit
 
+# Vehicle Cost Ledger models
+from .fund_source import FundSource
+from .vehicle_cost_ledger import VehicleCostLedger, CostEventType
+from .vehicle_cost_summary import VehicleCostSummary
+from .bill_number_sequence import BillNumberSequence
+
 # Bicycle models
 from .bicycle import Bicycle, BicycleCondition, BicycleStatus
 from .bicycle_application import BicycleApplication
@@ -84,6 +90,12 @@ __all__ = [
     "LoanApplicationDecision",
     "DecisionType",
     "LoanApplicationAudit",
+    # Vehicle Cost Ledger
+    "FundSource",
+    "VehicleCostLedger",
+    "CostEventType",
+    "VehicleCostSummary",
+    "BillNumberSequence",
     # Bicycle
     "Bicycle",
     "BicycleCondition",
