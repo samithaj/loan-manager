@@ -13,6 +13,15 @@ from .client import Client
 from .loan_product import LoanProduct
 from .loan import Loan
 
+# Loan Application models
+from .branch import Branch
+from .loan_application import LoanApplication, ApplicationStatus
+from .loan_application_customer import LoanApplicationCustomer
+from .loan_application_vehicle import LoanApplicationVehicle
+from .loan_application_document import LoanApplicationDocument, DocumentType
+from .loan_application_decision import LoanApplicationDecision, DecisionType
+from .loan_application_audit import LoanApplicationAudit
+
 # Bicycle models
 from .bicycle import Bicycle, BicycleCondition, BicycleStatus
 from .bicycle_application import BicycleApplication
@@ -64,6 +73,17 @@ __all__ = [
     "Client",
     "LoanProduct",
     "Loan",
+    # Loan Application
+    "Branch",
+    "LoanApplication",
+    "ApplicationStatus",
+    "LoanApplicationCustomer",
+    "LoanApplicationVehicle",
+    "LoanApplicationDocument",
+    "DocumentType",
+    "LoanApplicationDecision",
+    "DecisionType",
+    "LoanApplicationAudit",
     # Bicycle
     "Bicycle",
     "BicycleCondition",

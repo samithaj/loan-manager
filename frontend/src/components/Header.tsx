@@ -10,6 +10,7 @@ export default function Header() {
   const [loading, setLoading] = useState(true);
   const [workshopOpen, setWorkshopOpen] = useState(false);
   const [bikesOpen, setBikesOpen] = useState(false);
+  const [loanAppsOpen, setLoanAppsOpen] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -116,6 +117,33 @@ export default function Header() {
                     </Link>
                     <Link href="/workshop/reports" className="block px-4 py-2 hover:bg-gray-800 transition-colors">
                       Reports
+                    </Link>
+                  </div>
+                )}
+              </div>
+
+              {/* Loan Applications Dropdown */}
+              <div
+                className="relative"
+                onMouseEnter={() => setLoanAppsOpen(true)}
+                onMouseLeave={() => setLoanAppsOpen(false)}
+              >
+                <button className="flex items-center gap-1 hover:text-blue-300 transition-colors">
+                  Loan Applications
+                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                </button>
+                {loanAppsOpen && (
+                  <div className="absolute top-full left-0 mt-1 bg-gray-900 border border-gray-700 rounded-lg shadow-lg py-2 min-w-[200px] z-50">
+                    <Link href="/loan-applications" className="block px-4 py-2 hover:bg-gray-800 transition-colors">
+                      My Applications
+                    </Link>
+                    <Link href="/loan-applications/new" className="block px-4 py-2 hover:bg-gray-800 transition-colors">
+                      New Application
+                    </Link>
+                    <Link href="/loan-applications/queue" className="block px-4 py-2 hover:bg-gray-800 transition-colors">
+                      Approval Queue
                     </Link>
                   </div>
                 )}

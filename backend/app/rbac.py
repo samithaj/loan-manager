@@ -28,6 +28,8 @@ ROLE_INVENTORY_MANAGER = "inventory_manager"
 ROLE_FINANCE_OFFICER = "finance_officer"
 ROLE_CUSTOMER_SERVICE = "customer_service"
 ROLE_AUDITOR = "auditor"
+ROLE_LOAN_MANAGEMENT_OFFICER = "loan_management_officer"  # LMO - creates applications
+ROLE_LOAN_OFFICER = "loan_officer"  # LO - approves/rejects applications
 
 # Role permissions mapping
 ROLE_PERMISSIONS: dict[str, list[str]] = {
@@ -90,6 +92,26 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
         "clients:write",
     ],
     ROLE_AUDITOR: ["*.read"],  # Read-only access to all resources
+    ROLE_LOAN_MANAGEMENT_OFFICER: [
+        "loan_applications:read",
+        "loan_applications:write",
+        "loan_applications:submit",
+        "loan_applications:upload_documents",
+        "branches:read",
+        "clients:read",
+        "clients:write",
+    ],
+    ROLE_LOAN_OFFICER: [
+        "loan_applications:read",
+        "loan_applications:review",
+        "loan_applications:approve",
+        "loan_applications:reject",
+        "loan_applications:request_info",
+        "loan_applications:view_documents",
+        "loan_applications:add_notes",
+        "branches:read",
+        "clients:read",
+    ],
 }
 
 
