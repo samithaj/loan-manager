@@ -23,8 +23,14 @@ db:
 	psql "$$DATABASE_URL" -f database/migrations/0005_hr_module.sql
 	psql "$$DATABASE_URL" -f database/migrations/0006_workshop_module.sql
 	psql "$$DATABASE_URL" -f database/migrations/0007_rename_user_metadata.sql
+	psql "$$DATABASE_URL" -f database/migrations/0008_bike_lifecycle_system.sql
+	psql "$$DATABASE_URL" -f database/migrations/0009_performance_indexes.sql
+	psql "$$DATABASE_URL" -f database/migrations/0010_loan_approval_system.sql
+	psql "$$DATABASE_URL" -f database/migrations/0011_enhanced_leave_management.sql
+	psql "$$DATABASE_URL" -f database/migrations/0012_customer_kyc_commissions_accounting.sql
 	psql "$$DATABASE_URL" -f database/seed.sql
 	psql "$$DATABASE_URL" -f database/seed_bicycle_system.sql
+	psql "$$DATABASE_URL" -f database/seeds/0012_seed_accounting_data.sql
 
 typegen:
 	cd frontend && npm run typegen
