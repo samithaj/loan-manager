@@ -69,6 +69,19 @@ from .workshop_job import (
     RepairJobType, RepairJobStatus
 )
 
+# Customer KYC models
+from .customer_guarantor import CustomerGuarantor
+from .customer_employment import CustomerEmployment, EmploymentType, IncomeFrequency
+from .customer_bank_account import CustomerBankAccount, AccountType, BankAccountStatus
+
+# Commission models
+from .commission_rule import CommissionRule, CommissionType, FormulaType, TierBasis
+
+# Accounting models
+from .chart_of_accounts import ChartOfAccounts, AccountCategory, AccountType as ChartAccountType
+from .journal_entry import JournalEntry, JournalEntryLine, JournalEntryStatus, JournalEntryType
+from .petty_cash import PettyCashFloat, PettyCashVoucher, VoucherType, VoucherStatus
+
 # Utility models
 from .idempotency import IdempotencyRecord
 
@@ -149,6 +162,31 @@ __all__ = [
     "RepairJobOverhead",
     "RepairJobType",
     "RepairJobStatus",
+    # Customer KYC
+    "CustomerGuarantor",
+    "CustomerEmployment",
+    "EmploymentType",
+    "IncomeFrequency",
+    "CustomerBankAccount",
+    "AccountType",
+    "BankAccountStatus",
+    # Commission
+    "CommissionRule",
+    "CommissionType",
+    "FormulaType",
+    "TierBasis",
+    # Accounting
+    "ChartOfAccounts",
+    "AccountCategory",
+    "ChartAccountType",
+    "JournalEntry",
+    "JournalEntryLine",
+    "JournalEntryStatus",
+    "JournalEntryType",
+    "PettyCashFloat",
+    "PettyCashVoucher",
+    "VoucherType",
+    "VoucherStatus",
     # Utility
     "IdempotencyRecord",
 ]
