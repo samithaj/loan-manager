@@ -13,6 +13,21 @@ from .client import Client
 from .loan_product import LoanProduct
 from .loan import Loan
 
+# Loan Application models
+from .branch import Branch
+from .loan_application import LoanApplication, ApplicationStatus
+from .loan_application_customer import LoanApplicationCustomer
+from .loan_application_vehicle import LoanApplicationVehicle
+from .loan_application_document import LoanApplicationDocument, DocumentType
+from .loan_application_decision import LoanApplicationDecision, DecisionType
+from .loan_application_audit import LoanApplicationAudit
+
+# Vehicle Cost Ledger models
+from .fund_source import FundSource
+from .vehicle_cost_ledger import VehicleCostLedger, CostEventType
+from .vehicle_cost_summary import VehicleCostSummary
+from .bill_number_sequence import BillNumberSequence
+
 # Bicycle models
 from .bicycle import Bicycle, BicycleCondition, BicycleStatus
 from .bicycle_application import BicycleApplication
@@ -28,6 +43,10 @@ from .bicycle_sale import BicycleSale, SalePaymentMethod
 from .hr_leave import (
     LeaveType, LeaveApplication, LeaveBalance,
     LeaveStatus
+)
+from .leave_approval import (
+    LeaveApproval, LeaveAuditLog, LeavePolicy,
+    ApprovalDecision, ApproverRole
 )
 from .hr_attendance import (
     AttendanceRecord, AttendanceStatus
@@ -50,6 +69,19 @@ from .workshop_job import (
     RepairJobType, RepairJobStatus
 )
 
+# Customer KYC models
+from .customer_guarantor import CustomerGuarantor
+from .customer_employment import CustomerEmployment, EmploymentType, IncomeFrequency
+from .customer_bank_account import CustomerBankAccount, AccountType, BankAccountStatus
+
+# Commission models
+from .commission_rule import CommissionRule, CommissionType, FormulaType, TierBasis
+
+# Accounting models
+from .chart_of_accounts import ChartOfAccounts, AccountCategory, AccountType as ChartAccountType
+from .journal_entry import JournalEntry, JournalEntryLine, JournalEntryStatus, JournalEntryType
+from .petty_cash import PettyCashFloat, PettyCashVoucher, VoucherType, VoucherStatus
+
 # Utility models
 from .idempotency import IdempotencyRecord
 
@@ -64,6 +96,23 @@ __all__ = [
     "Client",
     "LoanProduct",
     "Loan",
+    # Loan Application
+    "Branch",
+    "LoanApplication",
+    "ApplicationStatus",
+    "LoanApplicationCustomer",
+    "LoanApplicationVehicle",
+    "LoanApplicationDocument",
+    "DocumentType",
+    "LoanApplicationDecision",
+    "DecisionType",
+    "LoanApplicationAudit",
+    # Vehicle Cost Ledger
+    "FundSource",
+    "VehicleCostLedger",
+    "CostEventType",
+    "VehicleCostSummary",
+    "BillNumberSequence",
     # Bicycle
     "Bicycle",
     "BicycleCondition",
@@ -84,6 +133,11 @@ __all__ = [
     "LeaveApplication",
     "LeaveBalance",
     "LeaveStatus",
+    "LeaveApproval",
+    "LeaveAuditLog",
+    "LeavePolicy",
+    "ApprovalDecision",
+    "ApproverRole",
     "AttendanceRecord",
     "AttendanceStatus",
     "SalesTarget",
@@ -108,6 +162,31 @@ __all__ = [
     "RepairJobOverhead",
     "RepairJobType",
     "RepairJobStatus",
+    # Customer KYC
+    "CustomerGuarantor",
+    "CustomerEmployment",
+    "EmploymentType",
+    "IncomeFrequency",
+    "CustomerBankAccount",
+    "AccountType",
+    "BankAccountStatus",
+    # Commission
+    "CommissionRule",
+    "CommissionType",
+    "FormulaType",
+    "TierBasis",
+    # Accounting
+    "ChartOfAccounts",
+    "AccountCategory",
+    "ChartAccountType",
+    "JournalEntry",
+    "JournalEntryLine",
+    "JournalEntryStatus",
+    "JournalEntryType",
+    "PettyCashFloat",
+    "PettyCashVoucher",
+    "VoucherType",
+    "VoucherStatus",
     # Utility
     "IdempotencyRecord",
 ]

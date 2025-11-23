@@ -39,6 +39,18 @@ from .routers import bike_sales as bike_sales_router
 from .routers import bike_expenses as bike_expenses_router
 from .routers import bike_reports as bike_reports_router
 from .routers import admin as admin_router
+from .routers import loan_applications as loan_applications_router
+from .routers import leave_approval as leave_approval_router
+from .routers import customer_guarantor as customer_guarantor_router
+from .routers import customer_employment as customer_employment_router
+from .routers import customer_bank_account as customer_bank_account_router
+from .routers import commission as commission_router
+from .routers import chart_of_accounts as chart_of_accounts_router
+from .routers import journal_entry as journal_entry_router
+from .routers import petty_cash as petty_cash_router
+from .routers import pdf_documents as pdf_documents_router
+from .routers import analytics as analytics_router
+from .routers import audit as audit_router
 from loguru import logger
 from .auth import router as auth_router
 from .rbac import get_current_user
@@ -144,6 +156,18 @@ def create_app() -> FastAPI:
     app.include_router(bike_expenses_router.router)
     app.include_router(bike_reports_router.router)
     app.include_router(admin_router.router)
+    app.include_router(loan_applications_router.router)
+    app.include_router(leave_approval_router.router)
+    app.include_router(customer_guarantor_router.router)
+    app.include_router(customer_employment_router.router)
+    app.include_router(customer_bank_account_router.router)
+    app.include_router(commission_router.router)
+    app.include_router(chart_of_accounts_router.router)
+    app.include_router(journal_entry_router.router)
+    app.include_router(petty_cash_router.router)
+    app.include_router(pdf_documents_router.router)
+    app.include_router(analytics_router.router)
+    app.include_router(audit_router.router)
     app.include_router(auth_router)
 
     # Mount static files for uploaded images

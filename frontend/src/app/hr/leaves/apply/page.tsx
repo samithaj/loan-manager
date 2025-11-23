@@ -24,7 +24,8 @@ export default function ApplyLeavePage() {
     end_date: "",
     total_days: 0,
     reason: "",
-    document_url: ""
+    document_url: "",
+    is_half_day: false
   });
 
   useEffect(() => {
@@ -58,39 +59,49 @@ export default function ApplyLeavePage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const validateForm = () => {
     if (!formData.leave_type_id) {
       alert("Please select a leave type");
-      return;
+      return false;
     }
 
     if (!formData.start_date || !formData.end_date) {
       alert("Please select start and end dates");
-      return;
+      return false;
     }
 
     if (formData.start_date > formData.end_date) {
       alert("End date must be after or equal to start date");
-      return;
+      return false;
     }
 
     if (!formData.reason || formData.reason.length < 10) {
       alert("Please provide a reason (at least 10 characters)");
-      return;
+      return false;
     }
 
     const selectedType = leaveTypes.find((lt) => lt.id === formData.leave_type_id);
     if (selectedType?.requires_documentation && !formData.document_url) {
       alert("This leave type requires documentation");
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleSubmit = async (e: React.FormEvent, submitImmediately: boolean = true) => {
+    e.preventDefault();
+
+    if (!validateForm()) {
       return;
     }
 
     try {
       setLoading(true);
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/leave/applications`,
+
+      // Create application (saves as DRAFT)
+      const createResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/leave-approval/applications`,
         {
           method: "POST",
           credentials: "include",
@@ -99,13 +110,34 @@ export default function ApplyLeavePage() {
         }
       );
 
-      if (response.ok) {
-        alert("Leave application submitted successfully!");
-        router.push("/hr/leaves");
-      } else {
-        const error = await response.json();
-        alert(`Failed to submit: ${error.detail}`);
+      if (!createResponse.ok) {
+        const error = await createResponse.json();
+        alert(`Failed to create application: ${error.detail}`);
+        return;
       }
+
+      const createdApp = await createResponse.json();
+
+      // If submitting immediately, submit for approval
+      if (submitImmediately) {
+        const submitResponse = await fetch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/leave-approval/applications/${createdApp.id}/submit`,
+          {
+            method: "POST",
+            credentials: "include",
+          }
+        );
+
+        if (submitResponse.ok) {
+          alert("Leave application submitted successfully!");
+        } else {
+          alert("Application created but failed to submit. You can submit it later from My Leaves.");
+        }
+      } else {
+        alert("Leave application saved as draft!");
+      }
+
+      router.push("/hr/leaves");
     } catch (error) {
       console.error("Error submitting leave application:", error);
       alert("An error occurred while submitting the application");
@@ -215,6 +247,25 @@ export default function ApplyLeavePage() {
             </p>
           </div>
 
+          {/* Half Day Checkbox */}
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              id="is_half_day"
+              checked={formData.is_half_day}
+              onChange={(e) =>
+                setFormData({ ...formData, is_half_day: e.target.checked })
+              }
+              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            />
+            <label
+              htmlFor="is_half_day"
+              className="ml-2 block text-sm text-gray-700"
+            >
+              This is a half-day leave
+            </label>
+          </div>
+
           {/* Reason */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -293,11 +344,20 @@ export default function ApplyLeavePage() {
               Cancel
             </button>
             <button
+              type="button"
+              onClick={(e) => handleSubmit(e, false)}
+              disabled={loading}
+              className="px-6 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition disabled:bg-gray-400 disabled:text-white disabled:border-gray-400"
+            >
+              {loading ? "Saving..." : "Save as Draft"}
+            </button>
+            <button
               type="submit"
+              onClick={(e) => handleSubmit(e, true)}
               disabled={loading}
               className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:bg-gray-400"
             >
-              {loading ? "Submitting..." : "Submit Application"}
+              {loading ? "Submitting..." : "Submit for Approval"}
             </button>
           </div>
         </form>

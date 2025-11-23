@@ -37,11 +37,11 @@ export default function LeaveApplicationsPage() {
       setLoading(true);
       const params = new URLSearchParams();
       if (filter.status) params.append("status", filter.status);
-      if (filter.dateFrom) params.append("start_date", filter.dateFrom);
-      if (filter.dateTo) params.append("end_date", filter.dateTo);
+      if (filter.dateFrom) params.append("from_date", filter.dateFrom);
+      if (filter.dateTo) params.append("to_date", filter.dateTo);
 
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/leave/applications?${params}`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/leave-approval/applications/my?${params}`,
         { credentials: "include" }
       );
 
@@ -60,31 +60,64 @@ export default function LeaveApplicationsPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
+      case "DRAFT":
+        return "bg-gray-100 text-gray-600";
       case "PENDING":
         return "bg-yellow-100 text-yellow-800";
+      case "APPROVED_BRANCH":
+        return "bg-blue-100 text-blue-800";
+      case "APPROVED_HO":
+        return "bg-green-100 text-green-700";
       case "APPROVED":
         return "bg-green-100 text-green-800";
       case "REJECTED":
         return "bg-red-100 text-red-800";
       case "CANCELLED":
         return "bg-gray-100 text-gray-800";
+      case "NEEDS_INFO":
+        return "bg-orange-100 text-orange-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
   };
 
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "DRAFT":
+        return "Draft";
+      case "PENDING":
+        return "Pending";
+      case "APPROVED_BRANCH":
+        return "Approved (Branch)";
+      case "APPROVED_HO":
+        return "Approved (HO)";
+      case "APPROVED":
+        return "Approved";
+      case "REJECTED":
+        return "Rejected";
+      case "CANCELLED":
+        return "Cancelled";
+      case "NEEDS_INFO":
+        return "Needs Info";
+      default:
+        return status;
+    }
+  };
+
   const cancelApplication = async (applicationId: string) => {
-    if (!confirm("Are you sure you want to cancel this leave application?")) {
+    const reason = prompt("Please provide a reason for cancellation:");
+    if (!reason || reason.trim() === "") {
       return;
     }
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/leave/applications/${applicationId}/cancel`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/leave-approval/applications/${applicationId}/cancel`,
         {
           method: "POST",
           credentials: "include",
-          headers: { "Content-Type": "application/json" }
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reason: reason.trim() })
         }
       );
 
@@ -134,9 +167,13 @@ export default function LeaveApplicationsPage() {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             >
               <option value="">All Statuses</option>
+              <option value="DRAFT">Draft</option>
               <option value="PENDING">Pending</option>
+              <option value="APPROVED_BRANCH">Approved (Branch)</option>
+              <option value="APPROVED_HO">Approved (HO)</option>
               <option value="APPROVED">Approved</option>
               <option value="REJECTED">Rejected</option>
+              <option value="NEEDS_INFO">Needs Info</option>
               <option value="CANCELLED">Cancelled</option>
             </select>
           </div>
@@ -231,14 +268,22 @@ export default function LeaveApplicationsPage() {
                         application.status
                       )}`}
                     >
-                      {application.status}
+                      {getStatusLabel(application.status)}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {new Date(application.created_at).toLocaleDateString()}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                    {(application.status === "PENDING" ||
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-3">
+                    <Link
+                      href={`/hr/leaves/${application.id}`}
+                      className="text-blue-600 hover:text-blue-900"
+                    >
+                      View
+                    </Link>
+                    {(application.status === "DRAFT" ||
+                      application.status === "PENDING" ||
+                      application.status === "APPROVED_BRANCH" ||
                       application.status === "APPROVED") && (
                       <button
                         onClick={() => cancelApplication(application.id)}

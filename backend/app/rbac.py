@@ -23,11 +23,14 @@ def _bearer(auth_header: str | None) -> str | None:
 # Role constants
 ROLE_ADMIN = "admin"
 ROLE_BRANCH_MANAGER = "branch_manager"
+ROLE_HEAD_MANAGER = "head_manager"  # Head Office Manager
 ROLE_SALES_AGENT = "sales_agent"
 ROLE_INVENTORY_MANAGER = "inventory_manager"
 ROLE_FINANCE_OFFICER = "finance_officer"
 ROLE_CUSTOMER_SERVICE = "customer_service"
 ROLE_AUDITOR = "auditor"
+ROLE_LOAN_MANAGEMENT_OFFICER = "loan_management_officer"  # LMO - creates applications
+ROLE_LOAN_OFFICER = "loan_officer"  # LO - approves/rejects applications
 
 # Role permissions mapping
 ROLE_PERMISSIONS: dict[str, list[str]] = {
@@ -46,11 +49,50 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
         "reports:view",
         # HR permissions
         "leaves:read",
-        "leaves:approve",
+        "leaves:approve",  # Branch-level leave approval
         "attendance:read",
         "attendance:write",
         "bonuses:read",
         "bonuses:approve",
+        # Customer KYC permissions
+        "view:customer_guarantors",
+        "view:customer_employment",
+        "view:customer_bank_accounts",
+        # Commission permissions
+        "view:commission_rules",
+        "create:commissions",
+        # Accounting permissions
+        "view:petty_cash",
+        "approve:petty_cash",
+        # PDF generation
+        "create:invoices",
+    ],
+    ROLE_HEAD_MANAGER: [
+        # Head Office Manager - approves leaves requiring HO approval
+        "bicycles:read",
+        "applications:read",
+        "loans:read",
+        "clients:read",
+        "reports:view",
+        # HR permissions
+        "leaves:read",
+        "leaves:approve",  # Branch-level approval (can also approve directly)
+        "leaves:approve_ho",  # Head Office approval
+        "attendance:read",
+        "bonuses:read",
+        "bonuses:approve",
+        # Customer KYC permissions
+        "view:customer_guarantors",
+        "view:customer_employment",
+        "view:customer_bank_accounts",
+        # Commission permissions
+        "view:commission_rules",
+        "create:commissions",
+        # Accounting permissions
+        "view:petty_cash",
+        "approve:petty_cash",
+        # Audit permissions
+        "audit:view",
     ],
     ROLE_SALES_AGENT: [
         "applications:read",
@@ -63,6 +105,15 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
         "bicycles:read",
         # HR permissions
         "attendance:read",
+        # Customer KYC permissions
+        "view:customer_guarantors",
+        "create:customer_guarantors",
+        "view:customer_employment",
+        "create:customer_employment",
+        "view:customer_bank_accounts",
+        "create:customer_bank_accounts",
+        # Commission permissions
+        "view:commission_rules",
     ],
     ROLE_INVENTORY_MANAGER: [
         "bicycles:read",
@@ -82,14 +133,93 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
         "bonuses:read",
         "bonuses:write",
         "bonuses:approve",
+        # Customer KYC permissions
+        "view:customer_guarantors",
+        "view:customer_employment",
+        "view:customer_bank_accounts",
+        "verify:customer_bank_accounts",
+        # Commission permissions
+        "view:commission_rules",
+        "create:commission_rules",
+        "edit:commission_rules",
+        "delete:commission_rules",
+        "calculate:commissions",
+        "create:commissions",
+        # Accounting permissions
+        "view:chart_of_accounts",
+        "create:chart_of_accounts",
+        "edit:chart_of_accounts",
+        "delete:chart_of_accounts",
+        # Journal Entry permissions
+        "view:journal_entries",
+        "create:journal_entries",
+        "edit:journal_entries",
+        "delete:journal_entries",
+        "post:journal_entries",
+        "void:journal_entries",
+        # Petty Cash permissions
+        "view:petty_cash",
+        "create:petty_cash",
+        "edit:petty_cash",
+        "delete:petty_cash",
+        "approve:petty_cash",
+        "reconcile:petty_cash",
+        "post:petty_cash",
     ],
     ROLE_CUSTOMER_SERVICE: [
         "applications:read",
         "applications:write",
         "clients:read",
         "clients:write",
+        # Customer KYC permissions
+        "view:customer_guarantors",
+        "create:customer_guarantors",
+        "edit:customer_guarantors",
+        "view:customer_employment",
+        "create:customer_employment",
+        "edit:customer_employment",
+        "view:customer_bank_accounts",
+        "create:customer_bank_accounts",
+        "edit:customer_bank_accounts",
     ],
-    ROLE_AUDITOR: ["*.read"],  # Read-only access to all resources
+    ROLE_AUDITOR: ["*.read", "audit:view"],  # Read-only access to all resources + audit logs
+    ROLE_LOAN_MANAGEMENT_OFFICER: [
+        "loan_applications:read",
+        "loan_applications:write",
+        "loan_applications:submit",
+        "loan_applications:upload_documents",
+        "branches:read",
+        "clients:read",
+        "clients:write",
+        # Customer KYC permissions
+        "view:customer_guarantors",
+        "create:customer_guarantors",
+        "edit:customer_guarantors",
+        "view:customer_employment",
+        "create:customer_employment",
+        "edit:customer_employment",
+        "view:customer_bank_accounts",
+        "create:customer_bank_accounts",
+        "edit:customer_bank_accounts",
+    ],
+    ROLE_LOAN_OFFICER: [
+        "loan_applications:read",
+        "loan_applications:review",
+        "loan_applications:approve",
+        "loan_applications:reject",
+        "loan_applications:request_info",
+        "loan_applications:view_documents",
+        "loan_applications:add_notes",
+        "branches:read",
+        "clients:read",
+        # Customer KYC permissions
+        "view:customer_guarantors",
+        "view:customer_employment",
+        "view:customer_bank_accounts",
+        "verify:customer_guarantors",
+        "verify:customer_employment",
+        "verify:customer_bank_accounts",
+    ],
 }
 
 
