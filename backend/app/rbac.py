@@ -54,6 +54,13 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
         "attendance:write",
         "bonuses:read",
         "bonuses:approve",
+        # Customer KYC permissions
+        "view:customer_guarantors",
+        "view:customer_employment",
+        "view:customer_bank_accounts",
+        # Commission permissions
+        "view:commission_rules",
+        "create:commissions",
     ],
     ROLE_HEAD_MANAGER: [
         # Head Office Manager - approves leaves requiring HO approval
@@ -69,6 +76,13 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
         "attendance:read",
         "bonuses:read",
         "bonuses:approve",
+        # Customer KYC permissions
+        "view:customer_guarantors",
+        "view:customer_employment",
+        "view:customer_bank_accounts",
+        # Commission permissions
+        "view:commission_rules",
+        "create:commissions",
     ],
     ROLE_SALES_AGENT: [
         "applications:read",
@@ -81,6 +95,15 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
         "bicycles:read",
         # HR permissions
         "attendance:read",
+        # Customer KYC permissions
+        "view:customer_guarantors",
+        "create:customer_guarantors",
+        "view:customer_employment",
+        "create:customer_employment",
+        "view:customer_bank_accounts",
+        "create:customer_bank_accounts",
+        # Commission permissions
+        "view:commission_rules",
     ],
     ROLE_INVENTORY_MANAGER: [
         "bicycles:read",
@@ -100,12 +123,39 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
         "bonuses:read",
         "bonuses:write",
         "bonuses:approve",
+        # Customer KYC permissions
+        "view:customer_guarantors",
+        "view:customer_employment",
+        "view:customer_bank_accounts",
+        "verify:customer_bank_accounts",
+        # Commission permissions
+        "view:commission_rules",
+        "create:commission_rules",
+        "edit:commission_rules",
+        "delete:commission_rules",
+        "calculate:commissions",
+        "create:commissions",
+        # Accounting permissions
+        "view:chart_of_accounts",
+        "create:chart_of_accounts",
+        "edit:chart_of_accounts",
+        "delete:chart_of_accounts",
     ],
     ROLE_CUSTOMER_SERVICE: [
         "applications:read",
         "applications:write",
         "clients:read",
         "clients:write",
+        # Customer KYC permissions
+        "view:customer_guarantors",
+        "create:customer_guarantors",
+        "edit:customer_guarantors",
+        "view:customer_employment",
+        "create:customer_employment",
+        "edit:customer_employment",
+        "view:customer_bank_accounts",
+        "create:customer_bank_accounts",
+        "edit:customer_bank_accounts",
     ],
     ROLE_AUDITOR: ["*.read"],  # Read-only access to all resources
     ROLE_LOAN_MANAGEMENT_OFFICER: [
@@ -116,6 +166,16 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
         "branches:read",
         "clients:read",
         "clients:write",
+        # Customer KYC permissions
+        "view:customer_guarantors",
+        "create:customer_guarantors",
+        "edit:customer_guarantors",
+        "view:customer_employment",
+        "create:customer_employment",
+        "edit:customer_employment",
+        "view:customer_bank_accounts",
+        "create:customer_bank_accounts",
+        "edit:customer_bank_accounts",
     ],
     ROLE_LOAN_OFFICER: [
         "loan_applications:read",
@@ -127,6 +187,13 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
         "loan_applications:add_notes",
         "branches:read",
         "clients:read",
+        # Customer KYC permissions
+        "view:customer_guarantors",
+        "view:customer_employment",
+        "view:customer_bank_accounts",
+        "verify:customer_guarantors",
+        "verify:customer_employment",
+        "verify:customer_bank_accounts",
     ],
 }
 
