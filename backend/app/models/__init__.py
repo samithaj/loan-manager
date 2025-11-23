@@ -69,6 +69,9 @@ from .workshop_job import (
     RepairJobType, RepairJobStatus
 )
 
+# Vendor models
+from .vendor import Vendor, VendorCategory, VendorContact
+
 # Customer KYC models
 from .customer_guarantor import CustomerGuarantor
 from .customer_employment import CustomerEmployment, EmploymentType, IncomeFrequency
@@ -162,6 +165,10 @@ __all__ = [
     "RepairJobOverhead",
     "RepairJobType",
     "RepairJobStatus",
+    # Vendor
+    "Vendor",
+    "VendorCategory",
+    "VendorContact",
     # Customer KYC
     "CustomerGuarantor",
     "CustomerEmployment",
