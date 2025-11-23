@@ -46,6 +46,8 @@ from .routers import customer_employment as customer_employment_router
 from .routers import customer_bank_account as customer_bank_account_router
 from .routers import commission as commission_router
 from .routers import chart_of_accounts as chart_of_accounts_router
+from .routers import journal_entry as journal_entry_router
+from .routers import petty_cash as petty_cash_router
 from loguru import logger
 from .auth import router as auth_router
 from .rbac import get_current_user
@@ -158,6 +160,8 @@ def create_app() -> FastAPI:
     app.include_router(customer_bank_account_router.router)
     app.include_router(commission_router.router)
     app.include_router(chart_of_accounts_router.router)
+    app.include_router(journal_entry_router.router)
+    app.include_router(petty_cash_router.router)
     app.include_router(auth_router)
 
     # Mount static files for uploaded images

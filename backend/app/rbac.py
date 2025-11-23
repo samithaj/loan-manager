@@ -61,6 +61,9 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
         # Commission permissions
         "view:commission_rules",
         "create:commissions",
+        # Accounting permissions
+        "view:petty_cash",
+        "approve:petty_cash",
     ],
     ROLE_HEAD_MANAGER: [
         # Head Office Manager - approves leaves requiring HO approval
@@ -83,6 +86,9 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
         # Commission permissions
         "view:commission_rules",
         "create:commissions",
+        # Accounting permissions
+        "view:petty_cash",
+        "approve:petty_cash",
     ],
     ROLE_SALES_AGENT: [
         "applications:read",
@@ -140,6 +146,21 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
         "create:chart_of_accounts",
         "edit:chart_of_accounts",
         "delete:chart_of_accounts",
+        # Journal Entry permissions
+        "view:journal_entries",
+        "create:journal_entries",
+        "edit:journal_entries",
+        "delete:journal_entries",
+        "post:journal_entries",
+        "void:journal_entries",
+        # Petty Cash permissions
+        "view:petty_cash",
+        "create:petty_cash",
+        "edit:petty_cash",
+        "delete:petty_cash",
+        "approve:petty_cash",
+        "reconcile:petty_cash",
+        "post:petty_cash",
     ],
     ROLE_CUSTOMER_SERVICE: [
         "applications:read",
