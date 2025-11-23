@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { exportAccountsToCSV } from "@/lib/export";
 
 type Account = {
   id: string;
@@ -100,12 +101,21 @@ export default function ChartOfAccountsPage() {
     <main className="min-h-screen p-8 space-y-4">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-semibold">Chart of Accounts</h1>
-        <a
-          href="/accounting/chart-of-accounts/new"
-          className="bg-blue-600 text-white rounded px-4 py-2"
-        >
-          Add Account
-        </a>
+        <div className="flex gap-2">
+          <button
+            onClick={() => exportAccountsToCSV(accounts)}
+            className="border rounded px-4 py-2 hover:bg-gray-50"
+            disabled={accounts.length === 0}
+          >
+            Export CSV
+          </button>
+          <a
+            href="/accounting/chart-of-accounts/new"
+            className="bg-blue-600 text-white rounded px-4 py-2"
+          >
+            Add Account
+          </a>
+        </div>
       </div>
 
       {error && <div className="text-sm text-red-600">{error}</div>}

@@ -64,6 +64,8 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
         # Accounting permissions
         "view:petty_cash",
         "approve:petty_cash",
+        # PDF generation
+        "create:invoices",
     ],
     ROLE_HEAD_MANAGER: [
         # Head Office Manager - approves leaves requiring HO approval
@@ -89,6 +91,8 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
         # Accounting permissions
         "view:petty_cash",
         "approve:petty_cash",
+        # Audit permissions
+        "audit:view",
     ],
     ROLE_SALES_AGENT: [
         "applications:read",
@@ -178,7 +182,7 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
         "create:customer_bank_accounts",
         "edit:customer_bank_accounts",
     ],
-    ROLE_AUDITOR: ["*.read"],  # Read-only access to all resources
+    ROLE_AUDITOR: ["*.read", "audit:view"],  # Read-only access to all resources + audit logs
     ROLE_LOAN_MANAGEMENT_OFFICER: [
         "loan_applications:read",
         "loan_applications:write",
