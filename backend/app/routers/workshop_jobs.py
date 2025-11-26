@@ -459,6 +459,64 @@ async def update_job_status(
         if job.job_type == RepairJobType.FULL_OVERHAUL_BEFORE_SALE.value:
             bicycle.total_repair_cost = float(bicycle.total_repair_cost or 0) + float(job.total_cost)
 
+            # Post repair costs to VehicleCostLedger for pre-sale overhauls
+            try:
+                from ..services.vehicle_cost_service import VehicleCostService
+                from ..schemas.vehicle_cost_schemas import VehicleCostCreate
+                from ..models.vehicle_cost_ledger import CostEventType
+                from ..models.fund_source import FundSource
+                from decimal import Decimal
+
+                # Get an active fund source
+                fund_result = await session.execute(
+                    select(FundSource).where(FundSource.is_active == True).limit(1)
+                )
+                fund_source = fund_result.scalar_one_or_none()
+
+                if fund_source and job.total_cost > 0:
+                    cost_service = VehicleCostService(session)
+
+                    # Build description with job details
+                    description = f"Repair Job {job.job_number}: {job.job_type}"
+                    if job.work_performed:
+                        description += f" - {job.work_performed[:100]}"
+
+                    cost_data = VehicleCostCreate(
+                        vehicle_id=job.bicycle_id,
+                        branch_id=job.branch_id,
+                        event_type=CostEventType.REPAIR_JOB,
+                        fund_source_id=fund_source.id,
+                        amount=Decimal(str(job.total_cost)),
+                        currency="LKR",
+                        description=description,
+                        reference_table="repair_jobs",
+                        reference_id=job_id,
+                        notes=f"Parts: {job.total_parts_cost}, Labour: {job.total_labour_cost}, Overhead: {job.total_overhead_cost}",
+                        meta_json={
+                            "job_type": job.job_type,
+                            "job_number": job.job_number,
+                            "parts_cost": float(job.total_parts_cost),
+                            "labour_cost": float(job.total_labour_cost),
+                            "overhead_cost": float(job.total_overhead_cost),
+                        },
+                        transaction_date=job.completed_at.date() if job.completed_at else datetime.utcnow().date()
+                    )
+
+                    await cost_service.create_cost_entry(
+                        data=cost_data,
+                        created_by=current_user.id,
+                        auto_generate_bill=True
+                    )
+                else:
+                    if not fund_source:
+                        import logging
+                        logging.warning(f"No active fund source for repair job cost posting: {job_id}")
+            except Exception as e:
+                # Log error but don't fail the job completion
+                import logging
+                logging.error(f"Failed to post repair costs to VehicleCostLedger: {str(e)}")
+                # Job is still marked as completed
+
     if data.status == RepairJobStatus.INVOICED.value and not job.closed_at:
         job.closed_at = datetime.utcnow()
 
