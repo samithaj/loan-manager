@@ -459,6 +459,64 @@ async def update_job_status(
         if job.job_type == RepairJobType.FULL_OVERHAUL_BEFORE_SALE.value:
             bicycle.total_repair_cost = float(bicycle.total_repair_cost or 0) + float(job.total_cost)
 
+            # Post repair costs to VehicleCostLedger for pre-sale overhauls
+            try:
+                from ..services.vehicle_cost_service import VehicleCostService
+                from ..schemas.vehicle_cost_schemas import VehicleCostCreate
+                from ..models.vehicle_cost_ledger import CostEventType
+                from ..models.fund_source import FundSource
+                from decimal import Decimal
+
+                # Get an active fund source
+                fund_result = await session.execute(
+                    select(FundSource).where(FundSource.is_active == True).limit(1)
+                )
+                fund_source = fund_result.scalar_one_or_none()
+
+                if fund_source and job.total_cost > 0:
+                    cost_service = VehicleCostService(session)
+
+                    # Build description with job details
+                    description = f"Repair Job {job.job_number}: {job.job_type}"
+                    if job.work_performed:
+                        description += f" - {job.work_performed[:100]}"
+
+                    cost_data = VehicleCostCreate(
+                        vehicle_id=job.bicycle_id,
+                        branch_id=job.branch_id,
+                        event_type=CostEventType.REPAIR_JOB,
+                        fund_source_id=fund_source.id,
+                        amount=Decimal(str(job.total_cost)),
+                        currency="LKR",
+                        description=description,
+                        reference_table="repair_jobs",
+                        reference_id=job_id,
+                        notes=f"Parts: {job.total_parts_cost}, Labour: {job.total_labour_cost}, Overhead: {job.total_overhead_cost}",
+                        meta_json={
+                            "job_type": job.job_type,
+                            "job_number": job.job_number,
+                            "parts_cost": float(job.total_parts_cost),
+                            "labour_cost": float(job.total_labour_cost),
+                            "overhead_cost": float(job.total_overhead_cost),
+                        },
+                        transaction_date=job.completed_at.date() if job.completed_at else datetime.utcnow().date()
+                    )
+
+                    await cost_service.create_cost_entry(
+                        data=cost_data,
+                        created_by=current_user.id,
+                        auto_generate_bill=True
+                    )
+                else:
+                    if not fund_source:
+                        import logging
+                        logging.warning(f"No active fund source for repair job cost posting: {job_id}")
+            except Exception as e:
+                # Log error but don't fail the job completion
+                import logging
+                logging.error(f"Failed to post repair costs to VehicleCostLedger: {str(e)}")
+                # Job is still marked as completed
+
     if data.status == RepairJobStatus.INVOICED.value and not job.closed_at:
         job.closed_at = datetime.utcnow()
 
@@ -825,3 +883,122 @@ async def list_job_overhead(
     overhead_records = result.scalars().all()
 
     return [JobOverheadOut(**overhead.to_dict()) for overhead in overhead_records]
+
+
+# ============================================================================
+# Parts Return Endpoint
+# ============================================================================
+
+class PartReturnIn(BaseModel):
+    """Return part from job"""
+    job_part_id: str = Field(..., description="ID of the job part to return")
+    return_quantity: float = Field(..., gt=0, description="Quantity to return")
+    return_reason: str = Field(..., min_length=5, max_length=500, description="Reason for return")
+    notes: Optional[str] = Field(None, max_length=1000)
+
+
+class PartReturnOut(BaseModel):
+    """Part return response"""
+    id: str
+    part_id: str
+    batch_id: str
+    job_id: str
+    returned_quantity: float
+    return_reason: str
+    movement_id: str
+    created_at: str
+
+
+@router.post("/jobs/{job_id}/parts/return", response_model=PartReturnOut)
+async def return_job_part(
+    job_id: str,
+    data: PartReturnIn,
+    current_user: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+):
+    """
+    Return part from repair job back to inventory
+
+    Creates a RETURN stock movement and updates batch quantity.
+
+    Permissions: All authenticated users
+    """
+    from datetime import datetime
+    import secrets
+
+    # Get the job part
+    stmt = select(RepairJobPart).where(RepairJobPart.id == data.job_part_id)
+    result = await session.execute(stmt)
+    job_part = result.scalar_one_or_none()
+
+    if not job_part:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Job part {data.job_part_id} not found"
+        )
+
+    if job_part.job_id != job_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Job part does not belong to this job"
+        )
+
+    # Validate return quantity
+    if data.return_quantity > job_part.quantity_used:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot return {data.return_quantity} - only {job_part.quantity_used} was used"
+        )
+
+    # Get the batch
+    stmt = select(PartStockBatch).where(PartStockBatch.id == job_part.batch_id)
+    result = await session.execute(stmt)
+    batch = result.scalar_one_or_none()
+
+    if not batch:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Stock batch not found"
+        )
+
+    # Create RETURN movement
+    movement_id = f"MOV-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}-{secrets.token_hex(3).upper()}"
+    movement = PartStockMovement(
+        id=movement_id,
+        part_id=job_part.part_id,
+        batch_id=job_part.batch_id,
+        branch_id=batch.branch_id,
+        movement_type="RETURN",
+        quantity=data.return_quantity,
+        unit_cost=job_part.unit_cost,
+        total_cost=data.return_quantity * job_part.unit_cost,
+        related_doc_type="REPAIR_JOB",
+        related_doc_id=job_id,
+        notes=f"{data.return_reason}. {data.notes or ''}",
+        created_by=current_user.get("username", "unknown"),
+    )
+    session.add(movement)
+
+    # Update batch quantity
+    batch.quantity_available = float(batch.quantity_available) + data.return_quantity
+
+    # Update job part quantity (reduce)
+    job_part.quantity_used = float(job_part.quantity_used) - data.return_quantity
+    job_part.total_cost = job_part.quantity_used * float(job_part.unit_cost)
+
+    # Recalculate job totals
+    await recalculate_job_totals(session, job_id)
+
+    await session.commit()
+    await session.refresh(movement)
+
+    return PartReturnOut(
+        id=movement.id,
+        part_id=movement.part_id,
+        batch_id=movement.batch_id,
+        job_id=job_id,
+        returned_quantity=data.return_quantity,
+        return_reason=data.return_reason,
+        movement_id=movement.id,
+        created_at=movement.created_at.isoformat() if movement.created_at else datetime.utcnow().isoformat()
+    )

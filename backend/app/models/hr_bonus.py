@@ -118,6 +118,11 @@ class BonusRule(Base):
     )  # PROFIT or SALE_PRICE
     buyer_branch_percent: Mapped[Optional[float]] = mapped_column(Numeric(5, 2), nullable=True)
     seller_branch_percent: Mapped[Optional[float]] = mapped_column(Numeric(5, 2), nullable=True)
+    garage_percent: Mapped[Optional[float]] = mapped_column(Numeric(5, 2), nullable=True)
+    sales_officer_percent: Mapped[Optional[float]] = mapped_column(Numeric(5, 2), nullable=True)
+    garage_commission_type: Mapped[str] = mapped_column(
+        String, default="PERCENTAGE", server_default="'PERCENTAGE'"
+    )  # PERCENTAGE, FIXED, or NONE
 
     def to_dict(self):
         return {
@@ -139,6 +144,9 @@ class BonusRule(Base):
             "commission_base": self.commission_base,
             "buyer_branch_percent": float(self.buyer_branch_percent) if self.buyer_branch_percent else None,
             "seller_branch_percent": float(self.seller_branch_percent) if self.seller_branch_percent else None,
+            "garage_percent": float(self.garage_percent) if self.garage_percent else None,
+            "sales_officer_percent": float(self.sales_officer_percent) if self.sales_officer_percent else None,
+            "garage_commission_type": self.garage_commission_type,
         }
 
 
@@ -195,7 +203,13 @@ class BonusPayment(Base):
     )
     commission_type: Mapped[Optional[str]] = mapped_column(
         String, nullable=True
-    )  # BUYER or SELLER
+    )  # BUYER, SELLER, GARAGE, or SALES_OFFICER
+    garage_branch_id: Mapped[Optional[str]] = mapped_column(
+        String, ForeignKey("offices.id"), nullable=True
+    )
+    sales_officer_id: Mapped[Optional[str]] = mapped_column(
+        UUID, nullable=True
+    )  # References users.id
 
     # NEW RELATIONSHIP
     bicycle_sale: Mapped[Optional["BicycleSale"]] = relationship(
@@ -233,4 +247,6 @@ class BonusPayment(Base):
             # New bike sale fields
             "bicycle_sale_id": self.bicycle_sale_id,
             "commission_type": self.commission_type,
+            "garage_branch_id": self.garage_branch_id,
+            "sales_officer_id": str(self.sales_officer_id) if self.sales_officer_id else None,
         }

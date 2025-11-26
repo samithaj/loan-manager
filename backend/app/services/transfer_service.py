@@ -4,17 +4,23 @@ Transfer Service
 Handles bicycle transfers between branches with approval workflow:
 1. Initiate transfer (PENDING)
 2. Approve transfer (APPROVED -> IN_TRANSIT) - assigns new stock number
-3. Complete transfer (COMPLETED)
+3. Complete transfer (COMPLETED) - posts costs to VehicleCostLedger
 Or reject at any stage
 """
 
-from datetime import datetime
+from datetime import datetime, date
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 import secrets
+from typing import TYPE_CHECKING
+from decimal import Decimal
+from uuid import UUID
 
 from ..models import Bicycle, BicycleTransfer, Office
 from .stock_number_service import StockNumberService
+
+if TYPE_CHECKING:
+    from .vehicle_cost_service import VehicleCostService
 
 
 class TransferService:
@@ -147,16 +153,18 @@ class TransferService:
     async def complete_transfer(
         db: AsyncSession,
         transfer_id: str,
-        completed_by: str
+        completed_by: str,
+        post_to_cost_ledger: bool = True
     ) -> BicycleTransfer:
         """
-        Mark transfer as completed.
+        Mark transfer as completed and optionally post costs to VehicleCostLedger.
         Updates transfer status to COMPLETED.
 
         Args:
             db: Database session
             transfer_id: Transfer ID
             completed_by: User ID or name of person completing transfer
+            post_to_cost_ledger: Whether to post transfer costs to VehicleCostLedger (default: True)
 
         Returns:
             BicycleTransfer object with COMPLETED status
@@ -171,6 +179,87 @@ class TransferService:
 
         # Complete (will raise ValueError if not in correct status)
         transfer.complete(completed_by)
+
+        # Post costs to VehicleCostLedger if enabled and transfer has costs
+        if post_to_cost_ledger and transfer.transfer_cost and transfer.transfer_cost > 0:
+            try:
+                from .vehicle_cost_service import VehicleCostService
+                from ..schemas.vehicle_cost_schemas import VehicleCostCreate
+                from ..models.vehicle_cost_ledger import CostEventType
+
+                # Get the destination branch to find fund source
+                to_branch = await db.get(Office, transfer.to_branch_id)
+                if not to_branch:
+                    raise ValueError(f"Destination branch {transfer.to_branch_id} not found")
+
+                # Use a default fund source or get from branch configuration
+                # For now, we'll need to query for an active fund source
+                from ..models.fund_source import FundSource
+                fund_result = await db.execute(
+                    select(FundSource)
+                    .where(FundSource.is_active == True)
+                    .limit(1)
+                )
+                fund_source = fund_result.scalar_one_or_none()
+
+                if not fund_source:
+                    # Skip cost posting if no fund source available
+                    # Log warning but don't fail the transfer
+                    import logging
+                    logging.warning(f"No active fund source found for transfer cost posting: {transfer_id}")
+                else:
+                    # Create cost entry
+                    cost_service = VehicleCostService(db)
+
+                    # Build description from cost breakdown if available
+                    description_parts = [f"Transfer from {transfer.from_branch_id} to {transfer.to_branch_id}"]
+                    if transfer.cost_breakdown:
+                        breakdown_items = [
+                            f"{k.replace('_', ' ').title()}: {v}"
+                            for k, v in transfer.cost_breakdown.items()
+                            if v and v > 0
+                        ]
+                        if breakdown_items:
+                            description_parts.append(f"Breakdown: {', '.join(breakdown_items)}")
+
+                    cost_data = VehicleCostCreate(
+                        vehicle_id=transfer.bicycle_id,
+                        branch_id=transfer.to_branch_id,  # Post to destination branch
+                        event_type=CostEventType.BRANCH_TRANSFER,
+                        fund_source_id=fund_source.id,
+                        amount=Decimal(str(transfer.transfer_cost)),
+                        currency="LKR",
+                        description="; ".join(description_parts),
+                        reference_table="bicycle_transfers",
+                        reference_id=transfer_id,
+                        notes=f"Transfer completed by {completed_by}. Transfer reason: {transfer.transfer_reason or 'N/A'}",
+                        meta_json=transfer.cost_breakdown or {},
+                        transaction_date=date.today()
+                    )
+
+                    # Resolve completed_by to UUID if it's a username
+                    try:
+                        completed_by_uuid = UUID(completed_by)
+                    except (ValueError, AttributeError):
+                        # Try to resolve as username
+                        from ..models.user import User
+                        user_result = await db.execute(
+                            select(User).where(User.username == completed_by)
+                        )
+                        user = user_result.scalar_one_or_none()
+                        completed_by_uuid = user.id if user else UUID('00000000-0000-0000-0000-000000000000')
+
+                    await cost_service.create_cost_entry(
+                        data=cost_data,
+                        created_by=completed_by_uuid,
+                        auto_generate_bill=True
+                    )
+
+            except Exception as e:
+                # Log the error but don't fail the transfer completion
+                import logging
+                logging.error(f"Failed to post transfer costs to VehicleCostLedger: {str(e)}")
+                # Transfer is still marked as completed
 
         return transfer
 

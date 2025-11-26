@@ -16,6 +16,9 @@ from ..models.loan_application_customer import LoanApplicationCustomer
 from ..models.loan_application_vehicle import LoanApplicationVehicle
 from ..models.loan_application_decision import LoanApplicationDecision, DecisionType
 from ..models.loan_application_audit import LoanApplicationAudit
+from ..models.loan_approval_threshold import LoanApprovalThreshold
+from ..models.branch import Branch
+from decimal import Decimal
 from ..schemas.loan_application_schemas import (
     LoanApplicationCreate,
     LoanApplicationUpdate,
@@ -429,3 +432,317 @@ class LoanApplicationService:
         )
         result = await self.db.execute(stmt)
         return list(result.scalars().all())
+
+    # ========================================================================
+    # Multi-Level Approval Methods
+    # ========================================================================
+
+    async def _get_company_id_from_branch(self, branch_id: UUID) -> str:
+        """Helper to get company_id from branch_id"""
+        branch = await self.db.get(Branch, branch_id)
+        if not branch:
+            raise ValueError(f"Branch {branch_id} not found")
+        return branch.company_id
+
+    async def determine_required_approval_level(
+        self,
+        company_id: str,
+        loan_amount: Decimal
+    ) -> int:
+        """
+        Determine the highest approval level required for a given loan amount.
+
+        Args:
+            company_id: Company identifier
+            loan_amount: Requested loan amount
+
+        Returns:
+            The highest approval level required (0 = initial review only)
+        """
+        stmt = (
+            select(func.max(LoanApprovalThreshold.approval_level))
+            .where(
+                LoanApprovalThreshold.company_id == company_id,
+                LoanApprovalThreshold.is_active == True,
+                LoanApprovalThreshold.min_amount <= loan_amount,
+                or_(
+                    LoanApprovalThreshold.max_amount.is_(None),
+                    LoanApprovalThreshold.max_amount > loan_amount
+                )
+            )
+        )
+
+        result = await self.db.execute(stmt)
+        max_level = result.scalar_one_or_none()
+
+        return max_level if max_level is not None else 0
+
+    async def get_next_approval_threshold(
+        self,
+        company_id: str,
+        loan_amount: Decimal,
+        current_level: int
+    ) -> Optional[LoanApprovalThreshold]:
+        """
+        Get the next approval threshold for a loan application.
+
+        Args:
+            company_id: Company identifier
+            loan_amount: Requested loan amount
+            current_level: Current approval level
+
+        Returns:
+            Next LoanApprovalThreshold or None if no more approvals needed
+        """
+        next_level = current_level + 1
+
+        stmt = (
+            select(LoanApprovalThreshold)
+            .where(
+                LoanApprovalThreshold.company_id == company_id,
+                LoanApprovalThreshold.is_active == True,
+                LoanApprovalThreshold.approval_level == next_level,
+                LoanApprovalThreshold.min_amount <= loan_amount,
+                or_(
+                    LoanApprovalThreshold.max_amount.is_(None),
+                    LoanApprovalThreshold.max_amount > loan_amount
+                )
+            )
+            .order_by(LoanApprovalThreshold.approval_level)
+            .limit(1)
+        )
+
+        result = await self.db.execute(stmt)
+        return result.scalar_one_or_none()
+
+    async def record_approval_decision(
+        self,
+        application_id: UUID,
+        officer_user_id: UUID,
+        decision_type: DecisionType,
+        approval_level: int,
+        notes: str,
+        threshold_id: Optional[UUID] = None
+    ) -> LoanApplicationDecision:
+        """
+        Record an approval decision at a specific approval level.
+
+        Args:
+            application_id: Application UUID
+            officer_user_id: Approving officer's user ID
+            decision_type: APPROVED, REJECTED, or NEEDS_MORE_INFO
+            approval_level: The approval level this decision belongs to
+            notes: Decision notes
+            threshold_id: Optional threshold that triggered this level
+
+        Returns:
+            Created LoanApplicationDecision
+        """
+        decision = LoanApplicationDecision(
+            application_id=application_id,
+            officer_user_id=officer_user_id,
+            decision=decision_type,
+            notes=notes,
+            approval_level=approval_level,
+            threshold_id=threshold_id,
+            is_auto_routed=False
+        )
+
+        self.db.add(decision)
+        await self.db.flush()
+
+        return decision
+
+    async def advance_approval_level(
+        self,
+        application: LoanApplication,
+        officer_user_id: UUID,
+        notes: str
+    ) -> tuple[LoanApplication, Optional[LoanApprovalThreshold]]:
+        """
+        Advance application to next approval level after approval.
+
+        Args:
+            application: LoanApplication instance
+            officer_user_id: Approving officer
+            notes: Approval notes
+
+        Returns:
+            Tuple of (updated application, next threshold or None)
+        """
+        # Get company ID
+        company_id = await self._get_company_id_from_branch(application.branch_id)
+
+        # Get next threshold
+        next_threshold = await self.get_next_approval_threshold(
+            company_id,
+            Decimal(str(application.requested_amount)),
+            application.current_approval_level
+        )
+
+        # Record approval decision at current level
+        await self.record_approval_decision(
+            application.id,
+            officer_user_id,
+            DecisionType.APPROVED,
+            application.current_approval_level,
+            notes,
+            threshold_id=next_threshold.id if next_threshold else None
+        )
+
+        # Update approval progress
+        progress = application.approval_progress or []
+        progress.append({
+            "level": application.current_approval_level,
+            "status": "APPROVED",
+            "by": str(officer_user_id),
+            "at": datetime.utcnow().isoformat(),
+            "notes": notes
+        })
+        application.approval_progress = progress
+
+        # If there's a next level, advance to it
+        if next_threshold:
+            application.current_approval_level += 1
+
+            # Create audit log for level advancement
+            await self._create_audit_log(
+                application.id,
+                officer_user_id,
+                f"APPROVED_LEVEL_{application.current_approval_level - 1}_ADVANCE_TO_{application.current_approval_level}",
+                from_status=application.status.value,
+                to_status=application.status.value,  # Status stays UNDER_REVIEW
+                payload={
+                    "previous_level": application.current_approval_level - 1,
+                    "new_level": application.current_approval_level,
+                    "next_approver_role": next_threshold.approver_role,
+                    "notes": notes
+                }
+            )
+
+            logger.info(
+                f"Application {application.application_no} advanced to level {application.current_approval_level}"
+            )
+        else:
+            # No more levels - final approval
+            application.status = ApplicationStatus.APPROVED
+            application.decided_at = datetime.utcnow()
+
+            # Create audit log for final approval
+            await self._create_audit_log(
+                application.id,
+                officer_user_id,
+                "FINAL_APPROVAL",
+                from_status=ApplicationStatus.UNDER_REVIEW.value,
+                to_status=ApplicationStatus.APPROVED.value,
+                payload={"final_level": application.current_approval_level, "notes": notes}
+            )
+
+            logger.info(
+                f"Application {application.application_no} FULLY APPROVED at level {application.current_approval_level}"
+            )
+
+        await self.db.flush()
+        return application, next_threshold
+
+    async def reject_at_level(
+        self,
+        application: LoanApplication,
+        officer_user_id: UUID,
+        notes: str
+    ) -> LoanApplication:
+        """
+        Reject application at current approval level.
+
+        Args:
+            application: LoanApplication instance
+            officer_user_id: Rejecting officer
+            notes: Rejection notes
+
+        Returns:
+            Updated application
+        """
+        # Record rejection decision
+        await self.record_approval_decision(
+            application.id,
+            officer_user_id,
+            DecisionType.REJECTED,
+            application.current_approval_level,
+            notes
+        )
+
+        # Update approval progress
+        progress = application.approval_progress or []
+        progress.append({
+            "level": application.current_approval_level,
+            "status": "REJECTED",
+            "by": str(officer_user_id),
+            "at": datetime.utcnow().isoformat(),
+            "notes": notes
+        })
+        application.approval_progress = progress
+
+        # Change status to REJECTED
+        application.status = ApplicationStatus.REJECTED
+        application.decided_at = datetime.utcnow()
+
+        # Create audit log
+        await self._create_audit_log(
+            application.id,
+            officer_user_id,
+            f"REJECTED_AT_LEVEL_{application.current_approval_level}",
+            from_status=ApplicationStatus.UNDER_REVIEW.value,
+            to_status=ApplicationStatus.REJECTED.value,
+            payload={"level": application.current_approval_level, "notes": notes}
+        )
+
+        logger.info(
+            f"Application {application.application_no} REJECTED at level {application.current_approval_level}"
+        )
+
+        await self.db.flush()
+        return application
+
+    async def check_approval_permissions(
+        self,
+        application: LoanApplication,
+        user_permissions: list[str]
+    ) -> tuple[bool, Optional[str]]:
+        """
+        Check if user has permission to approve at current level.
+
+        Args:
+            application: LoanApplication instance
+            user_permissions: List of user's permissions
+
+        Returns:
+            Tuple of (has_permission, required_permission)
+        """
+        # Get company ID
+        company_id = await self._get_company_id_from_branch(application.branch_id)
+
+        # Get current threshold
+        stmt = (
+            select(LoanApprovalThreshold)
+            .where(
+                LoanApprovalThreshold.company_id == company_id,
+                LoanApprovalThreshold.is_active == True,
+                LoanApprovalThreshold.approval_level == application.current_approval_level,
+                LoanApprovalThreshold.min_amount <= application.requested_amount,
+                or_(
+                    LoanApprovalThreshold.max_amount.is_(None),
+                    LoanApprovalThreshold.max_amount > application.requested_amount
+                )
+            )
+        )
+
+        result = await self.db.execute(stmt)
+        threshold = result.scalar_one_or_none()
+
+        if not threshold:
+            return False, None
+
+        # Check if user has required permission
+        has_permission = threshold.approver_permission in user_permissions
+
+        return has_permission, threshold.approver_permission
