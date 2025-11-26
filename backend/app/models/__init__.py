@@ -21,6 +21,7 @@ from .loan_application_vehicle import LoanApplicationVehicle
 from .loan_application_document import LoanApplicationDocument, DocumentType
 from .loan_application_decision import LoanApplicationDecision, DecisionType
 from .loan_application_audit import LoanApplicationAudit
+from .loan_approval_threshold import LoanApprovalThreshold
 
 # Vehicle Cost Ledger models
 from .fund_source import FundSource
@@ -110,6 +111,7 @@ __all__ = [
     "LoanApplicationDecision",
     "DecisionType",
     "LoanApplicationAudit",
+    "LoanApprovalThreshold",
     # Vehicle Cost Ledger
     "FundSource",
     "VehicleCostLedger",

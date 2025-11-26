@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import String, text, DateTime, ForeignKey, Enum as SQLEnum
+from sqlalchemy import String, text, DateTime, ForeignKey, Enum as SQLEnum, Integer, Boolean
 from sqlalchemy.dialects.postgresql import UUID
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 from datetime import datetime
 from enum import Enum
 import uuid
@@ -12,6 +12,7 @@ from ..db import Base
 if TYPE_CHECKING:
     from .loan_application import LoanApplication
     from .user import User
+    from .loan_approval_threshold import LoanApprovalThreshold
 
 
 class DecisionType(str, Enum):
@@ -39,6 +40,13 @@ class LoanApplicationDecision(Base):
         SQLEnum(DecisionType, name="loan_decision_type"), index=True
     )
     notes: Mapped[str] = mapped_column(String(2000))
+
+    # Multi-level approval fields
+    approval_level: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, index=True)
+    is_auto_routed: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    threshold_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("loan_approval_thresholds.id"), nullable=True
+    )
 
     # Timestamp
     decided_at: Mapped[datetime] = mapped_column(

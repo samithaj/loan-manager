@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, text, Integer, Numeric, DateTime, ForeignKey, Enum as SQLEnum
-from sqlalchemy.dialects.postgresql import UUID
-from typing import TYPE_CHECKING, Optional
+from sqlalchemy.dialects.postgresql import UUID, JSONB
+from typing import TYPE_CHECKING, Optional, Any, List, Dict
 from datetime import datetime
 from enum import Enum
 import uuid
@@ -57,6 +57,13 @@ class LoanApplication(Base):
 
     # LMO notes
     lmo_notes: Mapped[Optional[str]] = mapped_column(String(2000), nullable=True)
+
+    # Multi-level approval tracking
+    current_approval_level: Mapped[int] = mapped_column(Integer, default=0, server_default="0", index=True)
+    required_approval_level: Mapped[int] = mapped_column(Integer, default=0, server_default="0", index=True)
+    approval_progress: Mapped[Optional[List[Dict[str, Any]]]] = mapped_column(
+        JSONB, default=list, server_default="'[]'::jsonb"
+    )
 
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(
