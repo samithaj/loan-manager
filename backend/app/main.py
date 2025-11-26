@@ -32,6 +32,7 @@ from .routers import hr_attendance as hr_attendance_router
 from .routers import hr_bonus as hr_bonus_router
 from .routers import workshop_parts as workshop_parts_router
 from .routers import workshop_jobs as workshop_jobs_router
+from .routers import vendors as vendors_router
 from .routers import companies as companies_router
 from .routers import bike_lifecycle as bike_lifecycle_router
 from .routers import bike_transfers as bike_transfers_router
@@ -149,6 +150,7 @@ def create_app() -> FastAPI:
     app.include_router(hr_bonus_router.router)
     app.include_router(workshop_parts_router.router)
     app.include_router(workshop_jobs_router.router)
+    app.include_router(vendors_router.router)
     app.include_router(companies_router.router)
     app.include_router(bike_lifecycle_router.router)
     app.include_router(bike_transfers_router.router)
