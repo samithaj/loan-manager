@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import String, ForeignKey, Text
-from sqlalchemy.dialects.postgresql import TIMESTAMP
+from sqlalchemy import String, ForeignKey, Text, Numeric
+from sqlalchemy.dialects.postgresql import TIMESTAMP, JSONB
 from datetime import datetime
 from enum import Enum
-from typing import Optional, Any, TYPE_CHECKING
+from typing import Optional, Any, Dict, TYPE_CHECKING
+from decimal import Decimal
 from ..db import Base
 
 if TYPE_CHECKING:
@@ -65,6 +66,14 @@ class BicycleTransfer(Base):
     reference_doc_number: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
+    # Transfer costs
+    transfer_cost: Mapped[Decimal] = mapped_column(
+        Numeric(12, 2), nullable=False, default=0, server_default="0"
+    )
+    cost_breakdown: Mapped[Optional[Dict[str, Any]]] = mapped_column(
+        JSONB, nullable=True, default=dict, server_default="'{}'::jsonb"
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True), nullable=False, default=datetime.utcnow, server_default="NOW()"
     )
@@ -123,4 +132,6 @@ class BicycleTransfer(Base):
             "transfer_reason": self.transfer_reason,
             "reference_doc_number": self.reference_doc_number,
             "notes": self.notes,
+            "transfer_cost": float(self.transfer_cost) if self.transfer_cost else 0.0,
+            "cost_breakdown": self.cost_breakdown or {},
         }
